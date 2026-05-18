@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="registerRoot" type="id" />
+    <item name="btnBackRegister" type="id" />
+    <item name="etNamaRegister" type="id" />
+    <item name="etEmailRegister" type="id" />
+    <item name="etPhoneRegister" type="id" />
+    <item name="etPasswordRegister" type="id" />
+    <item name="btnEyeRegister" type="id" />
+    <item name="etConfirmRegister" type="id" />
+    <item name="btnEyeConfirmRegister" type="id" />
+    <item name="btnDaftar" type="id" />
+</resources>

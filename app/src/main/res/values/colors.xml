@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <color name="gradient_start">#D8FAFF</color>
+    <color name="gradient_center">#F9FFFF</color>
+    <color name="gradient_end">#BFF3FF</color>
+
+    <color name="button_blue">#B8DDED</color>
+    <color name="link_blue">#246E9B</color>
+</resources>
