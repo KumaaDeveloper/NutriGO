@@ -165,7 +165,7 @@
             android:background="#00000000"
             android:contentDescription="@string/tampilkan_password"
             android:padding="7dp"
-            android:src="@drawable/ic_eye" />
+            android:src="@drawable/ic_eye_close" />
 
     </LinearLayout>
 
@@ -208,7 +208,7 @@
             android:background="#00000000"
             android:contentDescription="@string/tampilkan_password"
             android:padding="7dp"
-            android:src="@drawable/ic_eye" />
+            android:src="@drawable/ic_eye_close" />
 
     </LinearLayout>
 

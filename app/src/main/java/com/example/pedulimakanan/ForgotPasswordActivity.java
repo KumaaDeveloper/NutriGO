@@ -24,7 +24,7 @@ import java.net.URLEncoder;
 
 public class ForgotPasswordActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://10.0.2.2/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
 
     private EditText etEmailForgot, etKodeVerifikasi;
     private EditText etPasswordBaru, etConfirmForgot;

@@ -22,10 +22,13 @@ import java.net.URLEncoder;
 
 public class RegisterActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://10.0.2.2/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
 
-    private EditText etNamaRegister, etEmailRegister, etPhoneRegister;
-    private EditText etPasswordRegister, etConfirmRegister;
+    private EditText etNamaRegister;
+    private EditText etEmailRegister;
+    private EditText etPhoneRegister;
+    private EditText etPasswordRegister;
+    private EditText etConfirmRegister;
 
     private boolean passwordVisible = false;
     private boolean confirmVisible = false;
@@ -47,16 +50,19 @@ public class RegisterActivity extends Activity {
 
         Button btnDaftar = findViewById(R.id.btnDaftar);
 
+        btnEyeRegister.setImageResource(R.drawable.ic_eye_close);
+        btnEyeConfirmRegister.setImageResource(R.drawable.ic_eye_close);
+
         btnBackRegister.setOnClickListener(v -> finish());
 
         btnEyeRegister.setOnClickListener(v -> {
             passwordVisible = !passwordVisible;
-            togglePassword(etPasswordRegister, passwordVisible);
+            togglePassword(etPasswordRegister, btnEyeRegister, passwordVisible);
         });
 
         btnEyeConfirmRegister.setOnClickListener(v -> {
             confirmVisible = !confirmVisible;
-            togglePassword(etConfirmRegister, confirmVisible);
+            togglePassword(etConfirmRegister, btnEyeConfirmRegister, confirmVisible);
         });
 
         btnDaftar.setOnClickListener(v -> {
@@ -92,7 +98,10 @@ public class RegisterActivity extends Activity {
             }
 
             if (!password.equals(confirm)) {
-                showDialogMessage(getString(R.string.register_gagal), getString(R.string.password_tidak_sama));
+                showDialogMessage(
+                        getString(R.string.register_gagal),
+                        getString(R.string.password_tidak_sama)
+                );
                 return;
             }
 
@@ -125,13 +134,16 @@ public class RegisterActivity extends Activity {
                                 URLEncoder.encode("password", "UTF-8") + "=" + URLEncoder.encode(password, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
+
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
                 writer.write(postData);
                 writer.flush();
                 writer.close();
+
                 os.close();
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+
                 StringBuilder result = new StringBuilder();
                 String line;
 
@@ -153,6 +165,7 @@ public class RegisterActivity extends Activity {
         protected void onPostExecute(String response) {
             try {
                 JSONObject jsonObject = new JSONObject(response);
+
                 boolean success = jsonObject.getBoolean("success");
                 String message = jsonObject.getString("message");
 
@@ -170,16 +183,23 @@ public class RegisterActivity extends Activity {
                 }
 
             } catch (Exception e) {
-                showDialogMessage(getString(R.string.register_gagal), "Response server tidak valid");
+                showDialogMessage(
+                        getString(R.string.register_gagal),
+                        "Response server tidak valid"
+                );
             }
         }
     }
 
-    private void togglePassword(EditText editText, boolean visible) {
+    private void togglePassword(EditText editText, ImageButton imageButton, boolean visible) {
         if (visible) {
             editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            imageButton.setImageResource(R.drawable.ic_eye);
+            imageButton.setContentDescription(getString(R.string.sembunyikan_password));
         } else {
             editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            imageButton.setImageResource(R.drawable.ic_eye_close);
+            imageButton.setContentDescription(getString(R.string.tampilkan_password));
         }
 
         editText.setSelection(editText.getText().length());
