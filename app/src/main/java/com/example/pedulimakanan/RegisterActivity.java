@@ -1,38 +1,43 @@
 package com.example.pedulimakanan;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.InputType;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.Toast;
+
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 
 public class RegisterActivity extends Activity {
 
-    ImageButton btnBackRegister;
-    ImageButton btnEyeRegister;
-    ImageButton btnEyeConfirmRegister;
+    private static final String CONNECTOR_URL = "http://10.0.2.2/pedulimakanan/connector.php";
 
-    EditText etNamaRegister;
-    EditText etEmailRegister;
-    EditText etPhoneRegister;
-    EditText etPasswordRegister;
-    EditText etConfirmRegister;
+    private EditText etNamaRegister, etEmailRegister, etPhoneRegister;
+    private EditText etPasswordRegister, etConfirmRegister;
 
-    Button btnDaftar;
-
-    boolean passwordVisible = false;
-    boolean confirmVisible = false;
+    private boolean passwordVisible = false;
+    private boolean confirmVisible = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        btnBackRegister = findViewById(R.id.btnBackRegister);
-        btnEyeRegister = findViewById(R.id.btnEyeRegister);
-        btnEyeConfirmRegister = findViewById(R.id.btnEyeConfirmRegister);
+        ImageButton btnBackRegister = findViewById(R.id.btnBackRegister);
+        ImageButton btnEyeRegister = findViewById(R.id.btnEyeRegister);
+        ImageButton btnEyeConfirmRegister = findViewById(R.id.btnEyeConfirmRegister);
 
         etNamaRegister = findViewById(R.id.etNamaRegister);
         etEmailRegister = findViewById(R.id.etEmailRegister);
@@ -40,7 +45,7 @@ public class RegisterActivity extends Activity {
         etPasswordRegister = findViewById(R.id.etPasswordRegister);
         etConfirmRegister = findViewById(R.id.etConfirmRegister);
 
-        btnDaftar = findViewById(R.id.btnDaftar);
+        Button btnDaftar = findViewById(R.id.btnDaftar);
 
         btnBackRegister.setOnClickListener(v -> finish());
 
@@ -62,38 +67,112 @@ public class RegisterActivity extends Activity {
             String confirm = etConfirmRegister.getText().toString().trim();
 
             if (nama.isEmpty()) {
-                etNamaRegister.setError("Nama harus diisi");
+                etNamaRegister.setError(getString(R.string.nama_harus_diisi));
                 return;
             }
 
             if (email.isEmpty()) {
-                etEmailRegister.setError("Email harus diisi");
+                etEmailRegister.setError(getString(R.string.email_harus_diisi));
                 return;
             }
 
             if (noHp.isEmpty()) {
-                etPhoneRegister.setError("No HP harus diisi");
+                etPhoneRegister.setError(getString(R.string.no_hp_harus_diisi));
                 return;
             }
 
             if (password.isEmpty()) {
-                etPasswordRegister.setError("Password harus diisi");
+                etPasswordRegister.setError(getString(R.string.password_harus_diisi));
                 return;
             }
 
             if (confirm.isEmpty()) {
-                etConfirmRegister.setError("Konfirmasi password harus diisi");
+                etConfirmRegister.setError(getString(R.string.konfirmasi_password_harus_diisi));
                 return;
             }
 
             if (!password.equals(confirm)) {
-                etConfirmRegister.setError("Password tidak sama");
+                showDialogMessage(getString(R.string.register_gagal), getString(R.string.password_tidak_sama));
                 return;
             }
 
-            Toast.makeText(RegisterActivity.this, "Daftar berhasil", Toast.LENGTH_SHORT).show();
-            finish();
+            new RegisterTask().execute(nama, email, noHp, password);
         });
+    }
+
+    private class RegisterTask extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... data) {
+            try {
+                String nama = data[0];
+                String email = data[1];
+                String noHp = data[2];
+                String password = data[3];
+
+                URL url = new URL(CONNECTOR_URL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+
+                String postData =
+                        URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("register", "UTF-8") + "&" +
+                                URLEncoder.encode("nama", "UTF-8") + "=" + URLEncoder.encode(nama, "UTF-8") + "&" +
+                                URLEncoder.encode("email", "UTF-8") + "=" + URLEncoder.encode(email, "UTF-8") + "&" +
+                                URLEncoder.encode("no_hp", "UTF-8") + "=" + URLEncoder.encode(noHp, "UTF-8") + "&" +
+                                URLEncoder.encode("password", "UTF-8") + "=" + URLEncoder.encode(password, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+
+                reader.close();
+                conn.disconnect();
+
+                return result.toString();
+
+            } catch (Exception e) {
+                return "{\"success\":false,\"message\":\"Koneksi gagal: " + e.getMessage() + "\"}";
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String response) {
+            try {
+                JSONObject jsonObject = new JSONObject(response);
+                boolean success = jsonObject.getBoolean("success");
+                String message = jsonObject.getString("message");
+
+                if (success) {
+                    new AlertDialog.Builder(RegisterActivity.this)
+                            .setTitle(getString(R.string.berhasil))
+                            .setMessage(message)
+                            .setPositiveButton(getString(R.string.tutup), (dialog, which) -> {
+                                dialog.dismiss();
+                                finish();
+                            })
+                            .show();
+                } else {
+                    showDialogMessage(getString(R.string.register_gagal), message);
+                }
+
+            } catch (Exception e) {
+                showDialogMessage(getString(R.string.register_gagal), "Response server tidak valid");
+            }
+        }
     }
 
     private void togglePassword(EditText editText, boolean visible) {
@@ -104,5 +183,13 @@ public class RegisterActivity extends Activity {
         }
 
         editText.setSelection(editText.getText().length());
+    }
+
+    private void showDialogMessage(String title, String message) {
+        new AlertDialog.Builder(RegisterActivity.this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(getString(R.string.tutup), (dialog, which) -> dialog.dismiss())
+                .show();
     }
 }

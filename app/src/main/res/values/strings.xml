@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Peduli Makanan</string>
 
-    <!-- Umum -->
     <string name="kembali">Kembali</string>
     <string name="email">Email</string>
     <string name="nomor_hp">Nomor HP</string>
@@ -12,14 +11,20 @@
     <string name="tampilkan_password">Tampilkan password</string>
     <string name="sembunyikan_password">Sembunyikan password</string>
     <string name="bendera_indonesia">Bendera Indonesia</string>
+    <string name="tombol_kembali">Tombol kembali</string>
+    <string name="ikon_bendera_indonesia">Ikon bendera Indonesia</string>
+    <string name="ikon_mata_password">Ikon tampilkan password</string>
+    <string name="ikon_mata_konfirmasi_password">Ikon tampilkan konfirmasi password</string>
+    <string name="tutup">Tutup</string>
+    <string name="berhasil">Berhasil</string>
+    <string name="info">Info</string>
 
-    <!-- Login -->
     <string name="masuk">Masuk</string>
     <string name="lupa_kata_sandi">Lupa Kata Sandi?</string>
     <string name="belum_memiliki_akun">Belum Memiliki Akun? </string>
     <string name="daftar_sekarang">Daftar Sekarang</string>
+    <string name="login_gagal">Login Gagal</string>
 
-    <!-- Register -->
     <string name="daftar">Daftar</string>
     <string name="masukkan_nama">Masukkan Nama</string>
     <string name="masukkan_email">Masukkan Email</string>
@@ -29,8 +34,8 @@
     <string name="masukkan_password">Masukkan Password</string>
     <string name="konfirmasi_password">Konfirmasi Password</string>
     <string name="hint_password">xxxxxxxxxxxxxxxxxxxx</string>
+    <string name="register_gagal">Register Gagal</string>
 
-    <!-- Lupa Password -->
     <string name="lupa_sandi">Lupa Sandi</string>
     <string name="verifikasi_melalui">Verifikasi Melalui</string>
     <string name="masukkan_nomor_hp">Masukkan Nomor HP</string>
@@ -39,19 +44,18 @@
     <string name="masukkan_password_baru">Masukkan Password Baru</string>
     <string name="password_baru">Password Baru</string>
     <string name="selesai">Selesai</string>
+    <string name="ambil_kode">Ambil Kode</string>
+    <string name="reset_password_gagal">Reset Password Gagal</string>
+    <string name="reset_password_pakai_email">Reset password saat ini memakai email.</string>
 
-    <!-- Content Description -->
-    <string name="tombol_kembali">Tombol kembali</string>
-    <string name="ikon_bendera_indonesia">Ikon bendera Indonesia</string>
-    <string name="ikon_mata_password">Ikon tampilkan password</string>
-    <string name="ikon_mata_konfirmasi_password">Ikon tampilkan konfirmasi password</string>
+    <string name="home">Home</string>
+    <string name="kembali_ke_login">Kembali ke Login</string>
+    <string name="selamat_datang">Selamat Datang di Peduli Makanan</string>
 
-    <!-- Toast -->
     <string name="tombol_masuk_ditekan">Tombol Masuk ditekan</string>
     <string name="daftar_berhasil">Daftar berhasil</string>
     <string name="password_berhasil_diubah">Password berhasil diubah</string>
 
-    <!-- Error validasi -->
     <string name="nama_harus_diisi">Nama harus diisi</string>
     <string name="email_harus_diisi">Email harus diisi</string>
     <string name="no_hp_harus_diisi">No HP harus diisi</string>
@@ -61,4 +65,5 @@
     <string name="data_harus_diisi">Data harus diisi</string>
     <string name="kode_verifikasi_harus_diisi">Kode verifikasi harus diisi</string>
     <string name="password_baru_harus_diisi">Password baru harus diisi</string>
+    <string name="semua_data_harus_diisi">Semua data harus diisi</string>
 </resources>
