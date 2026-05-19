@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -25,13 +28,19 @@ import java.net.URLEncoder;
 public class ForgotPasswordActivity extends Activity {
 
     private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String PHONE_PREFIX = "+62";
 
     private EditText etEmailForgot, etKodeVerifikasi;
     private EditText etPasswordBaru, etConfirmForgot;
     private TextView tvLabelEmailForgot;
 
+    private RadioButton rbEmail, rbNomorHp;
+
     private boolean passwordBaruVisible = false;
     private boolean confirmVisible = false;
+    private boolean isUpdatingPhoneText = false;
+
+    private String selectedMethod = "email"; // email atau phone
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,8 +51,8 @@ public class ForgotPasswordActivity extends Activity {
         ImageButton btnEyePasswordBaru = findViewById(R.id.btnEyePasswordBaru);
         ImageButton btnEyeConfirmForgot = findViewById(R.id.btnEyeConfirmForgot);
 
-        RadioButton rbEmail = findViewById(R.id.rbEmail);
-        RadioButton rbNomorHp = findViewById(R.id.rbNomorHp);
+        rbEmail = findViewById(R.id.rbEmail);
+        rbNomorHp = findViewById(R.id.rbNomorHp);
 
         tvLabelEmailForgot = findViewById(R.id.tvLabelEmailForgot);
 
@@ -55,30 +64,116 @@ public class ForgotPasswordActivity extends Activity {
         Button btnAmbilKode = findViewById(R.id.btnAmbilKode);
         Button btnSelesai = findViewById(R.id.btnSelesai);
 
+        rbEmail.setChecked(true);
+
         btnBackForgot.setOnClickListener(v -> finish());
 
         rbEmail.setOnClickListener(v -> {
+            selectedMethod = "email";
+
+            rbEmail.setChecked(true);
+            rbNomorHp.setChecked(false);
+
             tvLabelEmailForgot.setText(getString(R.string.masukkan_email));
             etEmailForgot.setText("");
             etEmailForgot.setHint(getString(R.string.email));
             etEmailForgot.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+            etEmailForgot.setFilters(new InputFilter[]{});
         });
 
         rbNomorHp.setOnClickListener(v -> {
-            showDialogMessage("Info", "Reset password saat ini memakai email.");
-            rbEmail.setChecked(true);
-            rbNomorHp.setChecked(false);
+            selectedMethod = "phone";
+
+            rbEmail.setChecked(false);
+            rbNomorHp.setChecked(true);
+
+            tvLabelEmailForgot.setText("Masukkan Nomor HP");
+            etEmailForgot.setHint("Nomor HP");
+            etEmailForgot.setInputType(InputType.TYPE_CLASS_PHONE);
+            etEmailForgot.setFilters(new InputFilter[]{new InputFilter.LengthFilter(16)});
+            etEmailForgot.setText(PHONE_PREFIX);
+            etEmailForgot.setSelection(etEmailForgot.getText().length());
+        });
+
+        etEmailForgot.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (!selectedMethod.equals("phone")) {
+                    return;
+                }
+
+                if (isUpdatingPhoneText) {
+                    return;
+                }
+
+                String text = editable.toString();
+
+                if (!text.startsWith(PHONE_PREFIX)) {
+                    isUpdatingPhoneText = true;
+
+                    String onlyNumber = text.replace("+62", "").replaceAll("[^0-9]", "");
+                    etEmailForgot.setText(PHONE_PREFIX + onlyNumber);
+                    etEmailForgot.setSelection(etEmailForgot.getText().length());
+
+                    isUpdatingPhoneText = false;
+                    return;
+                }
+
+                String afterPrefix = text.substring(PHONE_PREFIX.length());
+                String onlyNumber = afterPrefix.replaceAll("[^0-9]", "");
+
+                if (!afterPrefix.equals(onlyNumber)) {
+                    isUpdatingPhoneText = true;
+
+                    etEmailForgot.setText(PHONE_PREFIX + onlyNumber);
+                    etEmailForgot.setSelection(etEmailForgot.getText().length());
+
+                    isUpdatingPhoneText = false;
+                }
+            }
+        });
+
+        etEmailForgot.setOnClickListener(v -> {
+            if (selectedMethod.equals("phone")) {
+                if (etEmailForgot.getSelectionStart() < PHONE_PREFIX.length()) {
+                    etEmailForgot.setSelection(etEmailForgot.getText().length());
+                }
+            }
+        });
+
+        etEmailForgot.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && selectedMethod.equals("phone")) {
+                if (!etEmailForgot.getText().toString().startsWith(PHONE_PREFIX)) {
+                    etEmailForgot.setText(PHONE_PREFIX);
+                }
+                etEmailForgot.setSelection(etEmailForgot.getText().length());
+            }
         });
 
         btnAmbilKode.setOnClickListener(v -> {
-            String email = etEmailForgot.getText().toString().trim();
+            String identifier = etEmailForgot.getText().toString().trim();
 
-            if (email.isEmpty()) {
-                etEmailForgot.setError(getString(R.string.email_harus_diisi));
-                return;
+            if (selectedMethod.equals("email")) {
+                if (identifier.isEmpty()) {
+                    etEmailForgot.setError(getString(R.string.email_harus_diisi));
+                    return;
+                }
+            } else {
+                if (identifier.equals(PHONE_PREFIX) || identifier.length() <= PHONE_PREFIX.length()) {
+                    etEmailForgot.setError("Nomor HP harus diisi");
+                    return;
+                }
             }
 
-            new RequestCodeTask().execute(email);
+            new RequestCodeTask().execute(selectedMethod, identifier);
         });
 
         btnEyePasswordBaru.setOnClickListener(v -> {
@@ -92,14 +187,21 @@ public class ForgotPasswordActivity extends Activity {
         });
 
         btnSelesai.setOnClickListener(v -> {
-            String email = etEmailForgot.getText().toString().trim();
+            String identifier = etEmailForgot.getText().toString().trim();
             String kode = etKodeVerifikasi.getText().toString().trim();
             String passwordBaru = etPasswordBaru.getText().toString().trim();
             String confirm = etConfirmForgot.getText().toString().trim();
 
-            if (email.isEmpty()) {
-                etEmailForgot.setError(getString(R.string.email_harus_diisi));
-                return;
+            if (selectedMethod.equals("email")) {
+                if (identifier.isEmpty()) {
+                    etEmailForgot.setError(getString(R.string.email_harus_diisi));
+                    return;
+                }
+            } else {
+                if (identifier.equals(PHONE_PREFIX) || identifier.length() <= PHONE_PREFIX.length()) {
+                    etEmailForgot.setError("Nomor HP harus diisi");
+                    return;
+                }
             }
 
             if (kode.isEmpty()) {
@@ -125,7 +227,7 @@ public class ForgotPasswordActivity extends Activity {
                 return;
             }
 
-            new ResetPasswordTask().execute(email, kode, passwordBaru, confirm);
+            new ResetPasswordTask().execute(selectedMethod, identifier, kode, passwordBaru, confirm);
         });
     }
 
@@ -134,7 +236,8 @@ public class ForgotPasswordActivity extends Activity {
         @Override
         protected String doInBackground(String... data) {
             try {
-                String email = data[0];
+                String method = data[0];
+                String identifier = data[1];
 
                 URL url = new URL(CONNECTOR_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -145,7 +248,8 @@ public class ForgotPasswordActivity extends Activity {
 
                 String postData =
                         URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("request_code", "UTF-8") + "&" +
-                                URLEncoder.encode("email", "UTF-8") + "=" + URLEncoder.encode(email, "UTF-8");
+                                URLEncoder.encode("method", "UTF-8") + "=" + URLEncoder.encode(method, "UTF-8") + "&" +
+                                URLEncoder.encode("identifier", "UTF-8") + "=" + URLEncoder.encode(identifier, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
@@ -202,10 +306,11 @@ public class ForgotPasswordActivity extends Activity {
         @Override
         protected String doInBackground(String... data) {
             try {
-                String email = data[0];
-                String kode = data[1];
-                String passwordBaru = data[2];
-                String confirm = data[3];
+                String method = data[0];
+                String identifier = data[1];
+                String kode = data[2];
+                String passwordBaru = data[3];
+                String confirm = data[4];
 
                 URL url = new URL(CONNECTOR_URL);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -216,7 +321,8 @@ public class ForgotPasswordActivity extends Activity {
 
                 String postData =
                         URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("reset_password", "UTF-8") + "&" +
-                                URLEncoder.encode("email", "UTF-8") + "=" + URLEncoder.encode(email, "UTF-8") + "&" +
+                                URLEncoder.encode("method", "UTF-8") + "=" + URLEncoder.encode(method, "UTF-8") + "&" +
+                                URLEncoder.encode("identifier", "UTF-8") + "=" + URLEncoder.encode(identifier, "UTF-8") + "&" +
                                 URLEncoder.encode("kode", "UTF-8") + "=" + URLEncoder.encode(kode, "UTF-8") + "&" +
                                 URLEncoder.encode("password_baru", "UTF-8") + "=" + URLEncoder.encode(passwordBaru, "UTF-8") + "&" +
                                 URLEncoder.encode("konfirmasi", "UTF-8") + "=" + URLEncoder.encode(confirm, "UTF-8");

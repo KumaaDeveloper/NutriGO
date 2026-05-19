@@ -9,4 +9,6 @@
 
     <color name="button_blue">#B8DDED</color>
     <color name="link_blue">#246E9B</color>
+
+    <color name="splash_background">#D8FAFF</color>
 </resources>
