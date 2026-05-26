@@ -125,11 +125,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // ── Seed sample restaurants & menus ──────────────────────────────
     private void seedData(SQLiteDatabase db) {
         // ---- Restaurants (id assigned in order: 1, 2, 3, 4) ----
-        insertResto(db, "Saladstop",  "Jl. Sudirman No. 1",  "Salad",      4.8f, "");
-        insertResto(db, "Supergrain", "Jl. Thamrin No. 5",   "Grain Bowl", 4.3f, "");
-        insertResto(db, "GreenBowl",  "Jl. Kuningan No. 7",  "Bowls",      3.8f, "");
-        insertResto(db, "FreshBox",   "Jl. Senayan No. 2",   "Healthy",    3.5f, "");
-        insertResto(db, "Burgreen",   "Jl. Kemang No. 10",   "Vegan",      4.5f, "");
+        insertResto(db, "Saladstop",  "Jl. Sudirman No. 1",  "Salad",      4.8f, "saladstop");
+        insertResto(db, "Supergrain", "Jl. Thamrin No. 5",   "Grain Bowl", 4.3f, "supergrain");
+        insertResto(db, "GreenBowl",  "Jl. Kuningan No. 7",  "Bowls",      3.8f, "greenbowl");
+        insertResto(db, "FreshBox",   "Jl. Senayan No. 2",   "Healthy",    3.5f, "freshbox");
+        insertResto(db, "Burgreen",   "Jl. Kemang No. 10",   "Vegan",      4.5f, "burgreen");
 
         // ---- Menu for Saladstop (id=1) ----
         insertMenu(db, 1, "Tuna San",    85000, "Salad tuna segar dengan alpukat, tomat, saus madu", "", 1);

@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@drawable/bg_gradient">
 
-    <!-- ═══════════════════ SCROLLABLE CONTENT ═══════════════════ -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavigationContainer"
         android:scrollbars="none"
         android:overScrollMode="never">
 
@@ -18,7 +16,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- ── Top curved background area ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -29,7 +26,6 @@
                 android:paddingTop="28dp"
                 android:paddingBottom="32dp">
 
-                <!-- Greeting -->
                 <TextView
                     android:id="@+id/tvGreeting"
                     android:layout_width="match_parent"
@@ -41,7 +37,6 @@
                     android:textColor="#000000"
                     android:lineSpacingExtra="2dp" />
 
-                <!-- Search Bar -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
@@ -76,7 +71,6 @@
 
             </LinearLayout>
 
-            <!-- ── Wallet / Balance row ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -91,7 +85,6 @@
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp">
 
-                <!-- Coin + balance -->
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
@@ -109,7 +102,6 @@
                     android:textStyle="bold"
                     android:textColor="#000000" />
 
-                <!-- Add button -->
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
@@ -117,15 +109,14 @@
                     android:contentDescription="tambah saldo"
                     android:layout_marginEnd="16dp" />
 
-                <!-- Divider -->
                 <View
                     android:layout_width="1dp"
                     android:layout_height="28dp"
                     android:background="#DDDDDD"
                     android:layout_marginEnd="16dp" />
 
-                <!-- Pay -->
                 <LinearLayout
+                    android:id="@+id/btnPay"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
@@ -147,8 +138,8 @@
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
 
-                <!-- History -->
                 <LinearLayout
+                    android:id="@+id/btnHistory"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
@@ -171,7 +162,6 @@
 
             </LinearLayout>
 
-            <!-- ═══════════════════ POPULAR SECTION ═══════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -209,7 +199,6 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal" />
 
-            <!-- ═══════════════════ BUDGET SECTION ═══════════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -249,150 +238,112 @@
 
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="20dp" />
+                android:layout_height="96dp" />
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- ═══════════════════ BOTTOM NAVIGATION ═══════════════════ -->
     <LinearLayout
+        android:id="@+id/bottomNavigationContainer"
         android:layout_width="match_parent"
-        android:layout_height="62dp"
-        android:background="#FFFFFF"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_search"
         android:elevation="10dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
 
-        <!-- Home (active) -->
         <LinearLayout
             android:id="@+id/layoutNavHome"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:orientation="vertical">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_home_active"
-                android:contentDescription="home" />
-
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Home"
-                android:textSize="9sp"
-                android:textColor="#246E9B"
-                android:textStyle="bold" />
+                android:gravity="center"
+                android:orientation="vertical"
+                android:background="@drawable/bg_nav_active"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_home_active"
+                    android:contentDescription="home" />
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Favorit -->
         <LinearLayout
             android:id="@+id/layoutNavFavorit"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_nav_favorite"
                 android:contentDescription="favorit" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Favorit"
-                android:textSize="9sp"
-                android:textColor="#888888" />
         </LinearLayout>
 
-        <!-- Cart -->
         <LinearLayout
             android:id="@+id/layoutNavCart"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_nav_cart"
                 android:contentDescription="keranjang" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Keranjang"
-                android:textSize="9sp"
-                android:textColor="#888888" />
         </LinearLayout>
 
-        <!-- Transaksi -->
         <LinearLayout
             android:id="@+id/layoutNavTransaksi"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_nav_transaction"
                 android:contentDescription="transaksi" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Transaksi"
-                android:textSize="9sp"
-                android:textColor="#888888" />
         </LinearLayout>
 
-        <!-- Profil -->
         <LinearLayout
             android:id="@+id/layoutNavProfile"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:orientation="vertical">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_nav_profile"
                 android:contentDescription="profil" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Profil"
-                android:textSize="9sp"
-                android:textColor="#888888" />
         </LinearLayout>
 
     </LinearLayout>
 
-</LinearLayout>
+</RelativeLayout>

@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="160dp"
     android:layout_height="200dp"
     android:orientation="vertical"
     android:background="@drawable/bg_card"
     android:layout_marginEnd="12dp"
-    android:padding="0dp">
+    android:padding="6dp"> <androidx.cardview.widget.CardView
+    android:layout_width="match_parent"
+    android:layout_height="110dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="0dp">
 
-    <!-- Food image -->
     <ImageView
         android:id="@+id/imgResto"
         android:layout_width="match_parent"
-        android:layout_height="110dp"
+        android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:contentDescription="Gambar restoran"
-        android:src="@drawable/img_placeholder_food" />
+        android:contentDescription="Gambar restoran" />
+</androidx.cardview.widget.CardView>
 
-    <!-- Info area -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
         android:paddingTop="8dp"
-        android:paddingBottom="6dp">
+        android:paddingBottom="4dp"
+        android:gravity="center_vertical">
 
         <TextView
             android:id="@+id/tvNamaResto"
@@ -49,7 +53,6 @@
             android:maxLines="1"
             android:ellipsize="end" />
 
-        <!-- Rating row -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -67,10 +70,11 @@
                 android:id="@+id/tvRating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="3dp"
+                android:layout_marginStart="4dp"
                 android:text="0.0"
                 android:textColor="#000000"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
     </LinearLayout>

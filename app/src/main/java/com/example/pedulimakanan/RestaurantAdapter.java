@@ -30,7 +30,7 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
 
     public RestaurantAdapter(Context context, List<RestoranModel> stores,
                              OnItemClickListener listener) {
-        this.context = context;
+        this.context = context; // Memastikan objek context terikat dengan benar
         this.stores = stores;
         this.listener = listener;
     }
@@ -43,7 +43,7 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(context).inflate(R.layout.item_restaurant_card,
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_restaurant_card,
                 parent, false);
         return new ViewHolder(v);
     }
@@ -55,11 +55,33 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
         holder.tvRating.setText(String.format("%.1f", store.rating));
         holder.tvKategori.setText(store.kategori);
 
-        // Load image
         if (store.gambarUrl != null && !store.gambarUrl.isEmpty()) {
-            new LoadImageTask(holder.imgResto).execute(store.gambarUrl);
+
+            // JIKA URL INTERNET: Jalankan AsyncTask bawaan awal kamu (1 Argumen)
+            if (store.gambarUrl.startsWith("http://") || store.gambarUrl.startsWith("https://")) {
+                new LoadImageTask(holder.imgResto).execute(store.gambarUrl);
+            }
+
+            // JIKA LOKAL SQLITE: Ambil via Context langsung dari parent view agar anti-null
+            else {
+                Context viewContext = holder.itemView.getContext();
+                System.out.println("LOG_NUTRI_GO -> Nama Resto: " + store.namaResto + " | String Gambar di DB: '" + store.gambarUrl + "'");
+                int resId = viewContext.getResources().getIdentifier(
+                        store.gambarUrl,
+                        "drawable",
+                        viewContext.getPackageName()
+                );
+
+                System.out.println("LOG_NUTRI_GO -> Hasil ID Drawable: " + resId);
+
+                if (resId != 0) {
+                    holder.imgResto.setImageResource(resId);
+                } else {
+                    holder.imgResto.setImageResource(R.drawable.img_placeholder_food);
+                }
+            }
         } else {
-            holder.imgResto.setImageResource(R.drawable.ic_launcher_foreground);
+            holder.imgResto.setImageResource(R.drawable.img_placeholder_food);
         }
 
         holder.itemView.setOnClickListener(v -> listener.onItemClick(store));
@@ -83,7 +105,7 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
         }
     }
 
-    // Simple async image loader (no Glide needed since you have no Glide dependency)
+    // Melanjutkan LoadImageTask bentuk awal bawaan kamu (Murni hanya urusan URL)
     private static class LoadImageTask extends AsyncTask<String, Void, Bitmap> {
         private ImageView imageView;
 
@@ -93,17 +115,21 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
 
         @Override
         protected Bitmap doInBackground(String... urls) {
-            try {
-                URL url = new URL(urls[0]);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(5000);
-                conn.setReadTimeout(5000);
-                conn.connect();
-                InputStream is = conn.getInputStream();
-                return BitmapFactory.decodeStream(is);
-            } catch (Exception e) {
-                return null;
+            String pathGambar = urls[0];
+            if (pathGambar.startsWith("http://") || pathGambar.startsWith("https://")) {
+                try {
+                    URL url = new URL(pathGambar);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
+                    conn.connect();
+                    InputStream is = conn.getInputStream();
+                    return BitmapFactory.decodeStream(is);
+                } catch (Exception e) {
+                    return null;
+                }
             }
+            return null;
         }
 
         @Override
