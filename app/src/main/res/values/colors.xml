@@ -7,8 +7,13 @@
     <color name="gradient_center">#F9FFFF</color>
     <color name="gradient_end">#BFF3FF</color>
 
+    <color name="bg_screen">#E8F7FA</color>
+
     <color name="button_blue">#B8DDED</color>
     <color name="link_blue">#246E9B</color>
+
+    <color name="text_muted">#555555</color>
+    <color name="border_nav">#D2EDF2</color>
 
     <color name="splash_background">#D8FAFF</color>
 </resources>
