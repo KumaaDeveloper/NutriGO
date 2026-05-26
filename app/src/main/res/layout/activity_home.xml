@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F9FB">
+    android:background="@color/bg_screen">
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/bottomNavigationContainer"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -18,64 +19,70 @@
 
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="240dp"
+                android:layout_height="210dp"
                 android:background="@drawable/bg_home_header"
-                android:padding="24dp">
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="16dp">
 
                 <TextView
                     android:id="@+id/tvGreeting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
                     android:gravity="center"
                     android:text="Mau Makan Apa\nKamu Hari Ini?"
                     android:textColor="#000000"
-                    android:textSize="26sp"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
                     android:id="@+id/searchBar"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
+                    android:layout_height="44dp"
                     android:layout_below="@id/tvGreeting"
-                    android:layout_marginTop="24dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/bg_search_bar"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                    android:paddingEnd="16dp"
+                    android:elevation="2dp">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:src="@drawable/ic_search"
-                        app:tint="#666666" />
+                        app:tint="#444444" />
 
                     <EditText
                         android:id="@+id/etSearch"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="10dp"
                         android:background="@android:color/transparent"
                         android:hint="Cari Makanan"
                         android:inputType="text"
                         android:textColor="#000000"
-                        android:textColorHint="#888888"
-                        android:textSize="14sp" />
+                        android:textColorHint="#777777"
+                        android:textSize="13sp" />
                 </LinearLayout>
             </RelativeLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="-30dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="-24dp"
+                android:layout_marginEnd="20dp"
                 android:background="@drawable/bg_card_wallet"
-                android:elevation="4dp"
+                android:elevation="3dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -85,24 +92,24 @@
                     android:orientation="horizontal">
 
                     <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:src="@drawable/ic_coin" />
 
                     <TextView
                         android:id="@+id/tvSaldo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="6dp"
                         android:text="Rp. 10.000"
                         android:textColor="#000000"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_marginStart="6dp"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
                         android:src="@drawable/ic_add_circle"
                         app:tint="#000000" />
                 </LinearLayout>
@@ -115,8 +122,8 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:src="@drawable/ic_pay" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -124,7 +131,7 @@
                         android:layout_marginTop="2dp"
                         android:text="Pay"
                         android:textColor="#000000"
-                        android:textSize="10sp" />
+                        android:textSize="9sp" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -135,8 +142,8 @@
                     android:gravity="center"
                     android:orientation="vertical">
                     <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:src="@drawable/ic_history" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -144,28 +151,31 @@
                         android:layout_marginTop="2dp"
                         android:text="History"
                         android:textColor="#000000"
-                        android:textSize="10sp" />
+                        android:textSize="9sp" />
                 </LinearLayout>
             </LinearLayout>
 
             <TextView
+                android:id="@+id/tvLabelPopuler"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="28dp"
                 android:text="Makanan Sehat Populer"
                 android:textColor="#000000"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="24dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="16dp"
                 android:clipToPadding="false"
-                android:paddingStart="24dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="10dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -176,28 +186,41 @@
                 </LinearLayout>
             </HorizontalScrollView>
 
+            <TextView
+                android:id="@+id/tvLabelMurah"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="12dp"
+                android:text="Makanan Sehat Murah"
+                android:textColor="#000000"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
         </LinearLayout>
     </ScrollView>
 
     <LinearLayout
         android:id="@+id/bottomNavigationContainer"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="64dp"
         android:layout_alignParentBottom="true"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         android:background="@drawable/bg_bottom_navigation"
-        android:elevation="8dp"
+        android:elevation="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
 
         <ImageButton
             android:id="@+id/navHome"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@drawable/bg_nav_item_selected"
             android:src="@drawable/ic_home"
@@ -206,7 +229,7 @@
         <ImageButton
             android:id="@+id/navFavorite"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/ic_favorite"
@@ -215,7 +238,7 @@
         <ImageButton
             android:id="@+id/navCart"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/ic_cart"
@@ -224,7 +247,7 @@
         <ImageButton
             android:id="@+id/navOrders"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/ic_orders"
@@ -233,7 +256,7 @@
         <ImageButton
             android:id="@+id/navProfile"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/ic_profile"

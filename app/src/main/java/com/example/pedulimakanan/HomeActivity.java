@@ -1,6 +1,7 @@
 package com.example.pedulimakanan;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -55,11 +56,43 @@ public class HomeActivity extends Activity {
         // Saldo default mockup
         tvSaldo.setText("Rp. 10.000");
 
-        // Listener Navigasi Bawah
-        findViewById(R.id.navFavorite).setOnClickListener(v -> Toast.makeText(this, "Menu Favorit", Toast.LENGTH_SHORT).show());
-        findViewById(R.id.navCart).setOnClickListener(v -> Toast.makeText(this, "Keranjang Belanja", Toast.LENGTH_SHORT).show());
-        findViewById(R.id.navOrders).setOnClickListener(v -> Toast.makeText(this, "Riwayat Transaksi", Toast.LENGTH_SHORT).show());
-        findViewById(R.id.navProfile).setOnClickListener(v -> Toast.makeText(this, "Profil Pengguna", Toast.LENGTH_SHORT).show());
+        // Cari baris ini di HomeActivity.java lama kamu, lalu timpa dengan ini:
+        findViewById(R.id.navFavorite).setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, FavoriteActivity.class));
+            overridePendingTransition(0, 0); // Menghilangkan animasi kedip saat pindah menu
+        });
+
+        findViewById(R.id.navCart).setOnClickListener(v ->
+                Toast.makeText(this, "Keranjang Belanja", Toast.LENGTH_SHORT).show()
+        );
+
+        findViewById(R.id.navOrders).setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, TransactionActivity.class));
+            overridePendingTransition(0, 0);
+        });
+
+        findViewById(R.id.navProfile).setOnClickListener(v -> {
+            startActivity(new Intent(HomeActivity.this, ProfileActivity.class));
+            overridePendingTransition(0, 0);
+        });
+
+        TextView tvJudulPopuler = findViewById(R.id.tvLabelPopuler); // Pastikan ID ini ditambahkan di XML judul populer kamu
+        if (tvJudulPopuler != null) {
+            tvJudulPopuler.setOnClickListener(v -> {
+                Intent keKategori = new Intent(HomeActivity.this, CategoryActivity.class);
+                keKategori.putExtra("KATEGORI_MENU", "Makanan Sehat Populer");
+                startActivity(keKategori);
+            });
+        }
+
+        TextView tvJudulMurah = findViewById(R.id.tvLabelMurah); // Pastikan ID ini ditambahkan di XML judul murah kamu
+        if (tvJudulMurah != null) {
+            tvJudulMurah.setOnClickListener(v -> {
+                Intent keKategori = new Intent(HomeActivity.this, CategoryActivity.class);
+                keKategori.putExtra("KATEGORI_MENU", "Makanan Sehat Murah");
+                startActivity(keKategori);
+            });
+        }
 
         // Jalankan sinkronisasi data dari Database
         new FetchPopulerDataTask().execute();
