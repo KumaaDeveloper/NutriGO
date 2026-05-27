@@ -28,6 +28,25 @@ public class TransactionActivity extends Activity {
         llTransaksiContainer = findViewById(R.id.llTransaksiContainer);
 
         loadTransactions();
+
+        // ── INTEGRASI BOTTOM NAV UNTUK TRANSACTION ACTIVITY ──
+        LinearLayout layoutNavHome    = findViewById(R.id.layoutNavHome);
+        LinearLayout layoutNavFavorit = findViewById(R.id.layoutNavFavorit);
+
+        if (layoutNavHome != null) {
+            layoutNavHome.setOnClickListener(v -> {
+                Intent intent = new Intent(this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+                finish();
+            });
+        }
+
+        if (layoutNavFavorit != null) {
+            layoutNavFavorit.setOnClickListener(v -> {
+                startActivity(new Intent(this, FavoriteActivity.class));
+            });
+        }
     }
 
     private void loadTransactions() {

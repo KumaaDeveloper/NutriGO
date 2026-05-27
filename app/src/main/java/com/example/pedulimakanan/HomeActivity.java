@@ -114,24 +114,27 @@ public class HomeActivity extends Activity {
     }
 
     private void setupBottomNav(SharedPreferences prefs) {
-    LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
-    LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
-    LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
-    LinearLayout layoutNavTransaksi = findViewById(R.id.layoutNavTransaksi);
-    LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
- 
-    layoutNavHome.setOnClickListener(v -> { /* already here */ });
- 
-    layoutNavFavorit.setOnClickListener(v ->
-        Toast.makeText(this, "Favorit (coming soon)", Toast.LENGTH_SHORT).show());
- 
-    layoutNavCart.setOnClickListener(v ->
-        Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
- 
-    layoutNavTransaksi.setOnClickListener(v ->
-        startActivity(new Intent(this, TransactionActivity.class)));
- 
-    layoutNavProfile.setOnClickListener(v ->
-        Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
-}
+        LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
+        LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
+        LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
+        LinearLayout layoutNavTransaksi = findViewById(R.id.layoutNavTransaksi);
+        LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
+
+        layoutNavHome.setOnClickListener(v -> { /* Sudah di beranda */ });
+
+        // DIALIRKAN KE FAVORITE ACTIVITY
+        layoutNavFavorit.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FavoriteActivity.class);
+            startActivity(intent);
+        });
+
+        layoutNavCart.setOnClickListener(v ->
+                Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
+
+        layoutNavTransaksi.setOnClickListener(v ->
+                startActivity(new Intent(this, TransactionActivity.class)));
+
+        layoutNavProfile.setOnClickListener(v ->
+                Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
+    }
 }

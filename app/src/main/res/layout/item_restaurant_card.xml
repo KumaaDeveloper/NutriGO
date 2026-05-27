@@ -6,13 +6,30 @@
     android:background="@drawable/bg_card"
     android:layout_marginEnd="12dp">
 
-    <ImageView
-        android:id="@+id/imgResto"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="115dp"
-        android:scaleType="centerCrop"
-        android:contentDescription="Gambar restoran"
-        android:src="@drawable/img_placeholder_food" />
+        android:layout_height="115dp">
+
+        <ImageView
+            android:id="@+id/imgResto"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="Gambar restoran"
+            android:src="@drawable/img_placeholder_food" />
+
+        <ImageView
+            android:id="@+id/imgBtnFavorite"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:layout_margin="8dp"
+            android:padding="6dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_favorite"
+            android:contentDescription="Tombol Favorit" />
+    </RelativeLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,7 +62,5 @@
             android:textSize="10sp"
             android:maxLines="1"
             android:ellipsize="end" />
-
     </LinearLayout>
-
 </LinearLayout>

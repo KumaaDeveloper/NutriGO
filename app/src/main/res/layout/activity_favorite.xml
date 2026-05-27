@@ -5,7 +5,7 @@
     android:background="@drawable/bg_gradient">
 
     <LinearLayout
-        android:id="@+id/llToolbarTransaction"
+        android:id="@+id/llToolbarFavorite"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:background="@drawable/bg_top_wave"
@@ -15,7 +15,7 @@
         android:layout_alignParentTop="true">
 
         <ImageButton
-            android:id="@+id/btnBackTransaction"
+            android:id="@+id/btnBackFavorite"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@drawable/bg_back_box"
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Transaksi"
+            android:text="Restoran Favorit"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#000000"/>
@@ -39,13 +39,13 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/llToolbarTransaction"
+        android:layout_below="@id/llToolbarFavorite"
         android:layout_above="@id/bottomNavigationContainer"
         android:scrollbars="none"
         android:overScrollMode="never">
 
         <LinearLayout
-            android:id="@+id/llTransaksiContainer"
+            android:id="@+id/llFavoriteContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -90,11 +90,23 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_favorite"
-                android:contentDescription="favorit" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:background="@drawable/bg_nav_active"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_favorite"
+                    android:contentDescription="favorit" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -118,22 +130,11 @@
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="vertical">
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:background="@drawable/bg_nav_active"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_nav_transaction"
-                    android:contentDescription="transaksi" />
-            </LinearLayout>
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_nav_transaction"
+                android:contentDescription="transaksi" />
         </LinearLayout>
 
         <LinearLayout
