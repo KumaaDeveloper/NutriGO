@@ -92,6 +92,14 @@ public class RegisterActivity extends Activity {
                 return;
             }
 
+            if (!isPasswordValid(password)) {
+                showDialogMessage(
+                        getString(R.string.register_gagal),
+                        "Password harus minimal 8 karakter, memiliki 1 huruf besar, dan 1 angka"
+                );
+                return;
+            }
+
             if (confirm.isEmpty()) {
                 etConfirmRegister.setError(getString(R.string.konfirmasi_password_harus_diisi));
                 return;
@@ -109,10 +117,16 @@ public class RegisterActivity extends Activity {
         });
     }
 
+    private boolean isPasswordValid(String password) {
+        return password.matches("^(?=.*[A-Z])(?=.*\\d).{8,}$");
+    }
+
     private class RegisterTask extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... data) {
+            HttpURLConnection conn = null;
+
             try {
                 String nama = data[0];
                 String email = data[1];
@@ -120,11 +134,13 @@ public class RegisterActivity extends Activity {
                 String password = data[3];
 
                 URL url = new URL(CONNECTOR_URL);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn = (HttpURLConnection) url.openConnection();
 
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setDoInput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
 
                 String postData =
                         URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("register", "UTF-8") + "&" +
@@ -142,7 +158,13 @@ public class RegisterActivity extends Activity {
 
                 os.close();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                BufferedReader reader;
+
+                if (conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+                    reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                } else {
+                    reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                }
 
                 StringBuilder result = new StringBuilder();
                 String line;
@@ -152,12 +174,15 @@ public class RegisterActivity extends Activity {
                 }
 
                 reader.close();
-                conn.disconnect();
 
                 return result.toString();
 
             } catch (Exception e) {
-                return "{\"success\":false,\"message\":\"Koneksi gagal: " + e.getMessage() + "\"}";
+                return "{\"success\":false,\"message\":\"Koneksi gagal\"}";
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
         }
 
