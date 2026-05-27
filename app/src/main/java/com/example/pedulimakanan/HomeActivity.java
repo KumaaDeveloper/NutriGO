@@ -114,27 +114,24 @@ public class HomeActivity extends Activity {
     }
 
     private void setupBottomNav(SharedPreferences prefs) {
-        int userId = prefs.getInt("user_id", -1);
-
-        LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
-        LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
-        LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
-        LinearLayout layoutNavTransaksi = findViewById(R.id.layoutNavTransaksi);
-        LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
-
-        // Home — already here
-        layoutNavHome.setOnClickListener(v -> { /* already on home */ });
-
-        layoutNavFavorit.setOnClickListener(v ->
-                Toast.makeText(this, "Favorit (coming soon)", Toast.LENGTH_SHORT).show());
-
-        layoutNavCart.setOnClickListener(v ->
-                Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
-
-        layoutNavTransaksi.setOnClickListener(v ->
-                Toast.makeText(this, "Transaksi (coming soon)", Toast.LENGTH_SHORT).show());
-
-        layoutNavProfile.setOnClickListener(v ->
-                Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
-    }
+    LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
+    LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
+    LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
+    LinearLayout layoutNavTransaksi = findViewById(R.id.layoutNavTransaksi);
+    LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
+ 
+    layoutNavHome.setOnClickListener(v -> { /* already here */ });
+ 
+    layoutNavFavorit.setOnClickListener(v ->
+        Toast.makeText(this, "Favorit (coming soon)", Toast.LENGTH_SHORT).show());
+ 
+    layoutNavCart.setOnClickListener(v ->
+        Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
+ 
+    layoutNavTransaksi.setOnClickListener(v ->
+        startActivity(new Intent(this, TransactionActivity.class)));
+ 
+    layoutNavProfile.setOnClickListener(v ->
+        Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
+}
 }
