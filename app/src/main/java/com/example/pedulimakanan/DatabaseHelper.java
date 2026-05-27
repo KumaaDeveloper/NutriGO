@@ -196,7 +196,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /** Returns true if registration succeeded */
-    public boolean register(String nama, String email, String noHp, String password) {
+    public boolean register(String nama, String email, String noHp, String alamat, String password) {
         // Check duplicate email
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.rawQuery(
@@ -207,10 +207,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (exists) return false;
 
         ContentValues cv = new ContentValues();
-        cv.put("nama",     nama);
-        cv.put("email",    email);
-        cv.put("no_hp",    noHp);
-        cv.put("password", password);
+        cv.put("nama",           nama);
+        cv.put("email",          email);
+        cv.put("no_hp",          noHp);
+        cv.put("alamat_default", alamat);
+        cv.put("password",       password);
+
         long row = getWritableDatabase().insert(TABLE_USERS, null, cv);
         return row != -1;
     }

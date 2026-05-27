@@ -10,7 +10,7 @@ import android.widget.ImageButton;
 
 public class RegisterActivity extends Activity {
 
-    private EditText etNamaRegister, etEmailRegister, etPhoneRegister,
+    private EditText etNamaRegister, etEmailRegister, etPhoneRegister, etAlamatRegister,
             etPasswordRegister, etConfirmRegister;
     private boolean passwordVisible = false;
     private boolean confirmVisible  = false;
@@ -23,15 +23,17 @@ public class RegisterActivity extends Activity {
 
         db = new DatabaseHelper(this);
 
-        ImageButton btnBackRegister      = findViewById(R.id.btnBackRegister);
-        ImageButton btnEyeRegister       = findViewById(R.id.btnEyeRegister);
+        ImageButton btnBackRegister       = findViewById(R.id.btnBackRegister);
+        ImageButton btnEyeRegister        = findViewById(R.id.btnEyeRegister);
         ImageButton btnEyeConfirmRegister = findViewById(R.id.btnEyeConfirmRegister);
-        etNamaRegister    = findViewById(R.id.etNamaRegister);
-        etEmailRegister   = findViewById(R.id.etEmailRegister);
-        etPhoneRegister   = findViewById(R.id.etPhoneRegister);
+
+        etNamaRegister     = findViewById(R.id.etNamaRegister);
+        etEmailRegister    = findViewById(R.id.etEmailRegister);
+        etPhoneRegister    = findViewById(R.id.etPhoneRegister);
+        etAlamatRegister   = findViewById(R.id.etAlamatRegister);
         etPasswordRegister = findViewById(R.id.etPasswordRegister);
         etConfirmRegister  = findViewById(R.id.etConfirmRegister);
-        Button btnDaftar  = findViewById(R.id.btnDaftar);
+        Button btnDaftar   = findViewById(R.id.btnDaftar);
 
         btnEyeRegister.setImageResource(R.drawable.ic_eye_close);
         btnEyeConfirmRegister.setImageResource(R.drawable.ic_eye_close);
@@ -52,21 +54,24 @@ public class RegisterActivity extends Activity {
             String nama     = etNamaRegister.getText().toString().trim();
             String email    = etEmailRegister.getText().toString().trim();
             String noHp     = etPhoneRegister.getText().toString().trim();
+            String alamat   = etAlamatRegister.getText().toString().trim();
             String password = etPasswordRegister.getText().toString().trim();
             String confirm  = etConfirmRegister.getText().toString().trim();
 
-            if (nama.isEmpty())    { etNamaRegister.setError(getString(R.string.nama_harus_diisi)); return; }
-            if (email.isEmpty())   { etEmailRegister.setError(getString(R.string.email_harus_diisi)); return; }
-            if (noHp.isEmpty())    { etPhoneRegister.setError(getString(R.string.no_hp_harus_diisi)); return; }
-            if (password.isEmpty()){ etPasswordRegister.setError(getString(R.string.password_harus_diisi)); return; }
-            if (confirm.isEmpty()) { etConfirmRegister.setError(getString(R.string.konfirmasi_password_harus_diisi)); return; }
+            if (nama.isEmpty())     { etNamaRegister.setError(getString(R.string.nama_harus_diisi)); return; }
+            if (email.isEmpty())    { etEmailRegister.setError(getString(R.string.email_harus_diisi)); return; }
+            if (noHp.isEmpty())     { etPhoneRegister.setError(getString(R.string.no_hp_harus_diisi)); return; }
+            if (alamat.isEmpty())   { etAlamatRegister.setError(getString(R.string.alamat_harus_diisi)); return; }
+            if (password.isEmpty()) { etPasswordRegister.setError(getString(R.string.password_harus_diisi)); return; }
+            if (confirm.isEmpty())  { etConfirmRegister.setError(getString(R.string.konfirmasi_password_harus_diisi)); return; }
 
             if (!password.equals(confirm)) {
                 showDialog(getString(R.string.register_gagal), getString(R.string.password_tidak_sama));
                 return;
             }
 
-            boolean success = db.register(nama, email, noHp, password);
+            // ── FIX 2: Urutan parameter disesuaikan dengan DatabaseHelper (nama, email, noHp, alamat, password)
+            boolean success = db.register(nama, email, noHp, alamat, password);
             if (success) {
                 new AlertDialog.Builder(this)
                         .setTitle(getString(R.string.berhasil))
