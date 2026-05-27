@@ -39,7 +39,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "password TEXT NOT NULL," +
                 "kode_verifikasi TEXT," +
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                "alamat_default TEXT" +
+                "alamat TEXT" +
                 ")");
 
         // PENDING_USERS (holds registrations awaiting verification if needed)
@@ -196,7 +196,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /** Returns true if registration succeeded */
-    public boolean register(String nama, String email, String noHp, String password) {
+    public boolean register(String nama, String email, String noHp, String password, String alamat) {
         // Check duplicate email
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.rawQuery(
@@ -211,6 +211,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cv.put("email",    email);
         cv.put("no_hp",    noHp);
         cv.put("password", password);
+        cv.put("alamat", alamat); // <── Menyimpan data alamat baru ke kolom alamat_default
         long row = getWritableDatabase().insert(TABLE_USERS, null, cv);
         return row != -1;
     }

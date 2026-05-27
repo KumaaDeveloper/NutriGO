@@ -66,4 +66,8 @@
     <string name="kode_verifikasi_harus_diisi">Kode verifikasi harus diisi</string>
     <string name="password_baru_harus_diisi">Password baru harus diisi</string>
     <string name="semua_data_harus_diisi">Semua data harus diisi</string>
+
+    <string name="masukkan_alamat">Masukkan Alamat</string>
+    <string name="hint_alamat">Masukkan alamat lengkap rumahmu</string>
+    <string name="alamat_harus_diisi">Alamat harus diisi</string>
 </resources>

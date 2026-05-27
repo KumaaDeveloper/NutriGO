@@ -127,6 +127,34 @@
     </LinearLayout>
 
     <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="14dp"
+    android:text="@string/masukkan_alamat"
+    android:textColor="#000000"
+    android:textSize="13sp"
+    android:textStyle="bold" />
+
+    <EditText
+    android:id="@id/etAlamatRegister"
+    android:layout_width="match_parent"
+    android:layout_height="44dp"
+    android:layout_marginTop="6dp"
+    android:background="@drawable/bg_input"
+    android:hint="@string/hint_alamat"
+    android:inputType="textPostalAddress"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:textColor="#000000"
+    android:textColorHint="#888888"
+    android:textSize="11sp" />
+
+    <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="14dp" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"

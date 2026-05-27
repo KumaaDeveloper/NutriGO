@@ -11,7 +11,7 @@ import android.widget.ImageButton;
 public class RegisterActivity extends Activity {
 
     private EditText etNamaRegister, etEmailRegister, etPhoneRegister,
-            etPasswordRegister, etConfirmRegister;
+            etAlamatRegister, etPasswordRegister, etConfirmRegister; // ── Tambah etAlamatRegister
     private boolean passwordVisible = false;
     private boolean confirmVisible  = false;
     private DatabaseHelper db;
@@ -29,6 +29,7 @@ public class RegisterActivity extends Activity {
         etNamaRegister    = findViewById(R.id.etNamaRegister);
         etEmailRegister   = findViewById(R.id.etEmailRegister);
         etPhoneRegister   = findViewById(R.id.etPhoneRegister);
+        etAlamatRegister  = findViewById(R.id.etAlamatRegister); // ── Inisialisasi ID Alamat
         etPasswordRegister = findViewById(R.id.etPasswordRegister);
         etConfirmRegister  = findViewById(R.id.etConfirmRegister);
         Button btnDaftar  = findViewById(R.id.btnDaftar);
@@ -52,12 +53,14 @@ public class RegisterActivity extends Activity {
             String nama     = etNamaRegister.getText().toString().trim();
             String email    = etEmailRegister.getText().toString().trim();
             String noHp     = etPhoneRegister.getText().toString().trim();
+            String alamat   = etAlamatRegister.getText().toString().trim(); // ── Ambil teks alamat
             String password = etPasswordRegister.getText().toString().trim();
             String confirm  = etConfirmRegister.getText().toString().trim();
 
             if (nama.isEmpty())    { etNamaRegister.setError(getString(R.string.nama_harus_diisi)); return; }
             if (email.isEmpty())   { etEmailRegister.setError(getString(R.string.email_harus_diisi)); return; }
             if (noHp.isEmpty())    { etPhoneRegister.setError(getString(R.string.no_hp_harus_diisi)); return; }
+            if (alamat.isEmpty())  { etAlamatRegister.setError(getString(R.string.alamat_harus_diisi)); return; } // ── Validasi alamat
             if (password.isEmpty()){ etPasswordRegister.setError(getString(R.string.password_harus_diisi)); return; }
             if (confirm.isEmpty()) { etConfirmRegister.setError(getString(R.string.konfirmasi_password_harus_diisi)); return; }
 
@@ -66,7 +69,8 @@ public class RegisterActivity extends Activity {
                 return;
             }
 
-            boolean success = db.register(nama, email, noHp, password);
+            // Panggil fungsi register dengan parameter alamat tambahan
+            boolean success = db.register(nama, email, noHp, password, alamat);
             if (success) {
                 new AlertDialog.Builder(this)
                         .setTitle(getString(R.string.berhasil))

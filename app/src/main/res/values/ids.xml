@@ -10,4 +10,5 @@
     <item name="etConfirmRegister" type="id" />
     <item name="btnEyeConfirmRegister" type="id" />
     <item name="btnDaftar" type="id" />
+    <item name="etAlamatRegister" type="id" />
 </resources>
