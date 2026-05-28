@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/profileRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#EAFBFF">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="92dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="28dp"
+            android:paddingTop="30dp"
+            android:paddingEnd="28dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/imgProfile"
+                android:layout_width="128dp"
+                android:layout_height="128dp"
+                android:layout_marginTop="10dp"
+                android:elevation="4dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_profile_big"
+                app:shapeAppearanceOverlay="@style/CircleImageView"
+                app:strokeWidth="0dp" />
+
+            <TextView
+                android:id="@+id/tvProfileName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Profile Name"
+                android:textColor="#000000"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnChangeEmail"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/bg_profile_menu"
+                android:drawableStart="@drawable/ic_email"
+                android:drawablePadding="18dp"
+                android:gravity="center_vertical"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="Change Email"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnChangePhone"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_profile_menu"
+                android:drawableStart="@drawable/ic_phone"
+                android:drawablePadding="18dp"
+                android:gravity="center_vertical"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="Change No Telp"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnChangeProfileName"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_profile_menu"
+                android:drawableStart="@drawable/ic_edit"
+                android:drawablePadding="18dp"
+                android:gravity="center_vertical"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="Profile Name"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnChangeUsername"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_profile_menu"
+                android:drawableStart="@drawable/ic_user_black"
+                android:drawablePadding="18dp"
+                android:gravity="center_vertical"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="Username"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_profile_menu"
+                android:drawableStart="@drawable/ic_lock"
+                android:drawablePadding="18dp"
+                android:gravity="center_vertical"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:text="Password"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnKeluar"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="22dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/bg_profile_menu"
+                android:text="Keluar"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_bottom_nav"
+        android:elevation="3dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp">
+
+        <ImageButton
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="14dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_home" />
+
+        <ImageButton
+            android:id="@+id/navFavorite"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="14dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_favorite" />
+
+        <ImageButton
+            android:id="@+id/navCart"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="14dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_cart" />
+
+        <ImageButton
+            android:id="@+id/navOrder"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="14dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_order" />
+
+        <ImageButton
+            android:id="@+id/navProfile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_nav_active"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_profile" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -151,7 +151,16 @@ public class LoginActivity extends Activity {
                 String message = jsonObject.getString("message");
 
                 if (success) {
+                    int userId = jsonObject.getInt("id");
+                    String nama = jsonObject.optString("nama", "");
+                    String email = jsonObject.optString("email", "");
+                    String noHp = jsonObject.optString("no_hp", "");
+
                     Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                    intent.putExtra("user_id", userId);
+                    intent.putExtra("nama", nama);
+                    intent.putExtra("email", email);
+                    intent.putExtra("no_hp", noHp);
                     startActivity(intent);
                     finish();
                 } else {

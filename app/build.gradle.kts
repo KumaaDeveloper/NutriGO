@@ -4,6 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.pedulimakanan"
+
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -29,6 +30,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -40,6 +42,10 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
     implementation(libs.material)
+
+    implementation("com.github.yalantis:ucrop:2.2.11")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tvOldValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Data sebelumnya"
+        android:textColor="#000000"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/etNewValue"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_dialog_input"
+        android:hint="Data baru"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:textColor="#000000"
+        android:textColorHint="#777777"
+        android:textSize="14sp" />
+
+</LinearLayout>
