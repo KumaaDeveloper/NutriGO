@@ -11,6 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PeduliMakanan">
+
         <activity
             android:name=".FavoriteActivity"
             android:exported="false" />
@@ -43,6 +44,9 @@
             android:exported="false" />
         <activity
             android:name=".TransactionDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CartActivity"
             android:exported="false" />
     </application>
 

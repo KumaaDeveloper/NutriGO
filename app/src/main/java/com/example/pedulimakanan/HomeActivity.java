@@ -1,14 +1,14 @@
 package com.example.pedulimakanan;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.text.InputType;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +26,7 @@ public class HomeActivity extends Activity {
 
     private List<RestoranModel> allStores = new ArrayList<>();
     private RestaurantAdapter popularAdapter, budgetAdapter;
+    private int userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,60 +35,111 @@ public class HomeActivity extends Activity {
 
         db = new DatabaseHelper(this);
 
-        // Greeting
+        // 1. Cek Session Login
         SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
+        userId = prefs.getInt("user_id", -1);
         String namaUser = prefs.getString("nama", "");
+
+        if (userId == -1) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        // 2. Set Greeting
         TextView tvGreeting = findViewById(R.id.tvGreeting);
         if (!namaUser.isEmpty()) {
             tvGreeting.setText("Halo, " + namaUser + "!\nMau Makan Apa Hari Ini?");
         }
 
-        // Search
-        etSearchHome = findViewById(R.id.etSearchHome);
-        etSearchHome.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
-                filterStores(s.toString());
-            }
-            @Override public void afterTextChanged(Editable s) {}
+        // 3. Setup Tombol Topup & History
+        ImageView btnTambahSaldo = findViewById(R.id.btnTambahSaldo);
+        btnTambahSaldo.setOnClickListener(v -> showTopupDialog());
+
+        findViewById(R.id.btnHistory).setOnClickListener(v -> {
+            startActivity(new Intent(this, TransactionActivity.class));
         });
 
-        // RecyclerViews
+        // 4. Setup Search
+        etSearchHome = findViewById(R.id.etSearchHome);
+        etSearchHome.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
+            @Override public void onTextChanged(CharSequence s, int st, int b, int c) { filterStores(s.toString()); }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        // 5. Initialize RecyclerViews
         rvPopularStores = findViewById(R.id.rvPopularStores);
         rvBudgetStores  = findViewById(R.id.rvBudgetStores);
 
         popularAdapter = new RestaurantAdapter(this, new ArrayList<>(), this::openStore);
         budgetAdapter  = new RestaurantAdapter(this, new ArrayList<>(), this::openStore);
 
-        rvPopularStores.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvPopularStores.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         rvPopularStores.setAdapter(popularAdapter);
-
-        rvBudgetStores.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvBudgetStores.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         rvBudgetStores.setAdapter(budgetAdapter);
 
-        // Bottom nav
-        setupBottomNav(prefs);
-
-        // Load stores from SQLite
+        setupBottomNav();
         loadStores();
+        updateSaldoUI();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateSaldoUI();
+    }
+
+    private void updateSaldoUI() {
+        int saldo = db.getSaldo(userId);
+        TextView tvSaldo = findViewById(R.id.tvSaldo);
+        tvSaldo.setText("Rp. " + String.format("%,d", saldo).replace(',', '.'));
+    }
+
+    private void showTopupDialog() {
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Top Up Saldo")
+                .setMessage("Masukkan nominal saldo:")
+                .setView(input)
+                .setPositiveButton("Top Up", (dialog, which) -> {
+                    String val = input.getText().toString();
+                    if (!val.isEmpty()) {
+                        int nominal = Integer.parseInt(val);
+                        if (nominal <= 0) {
+                            Toast.makeText(this, "Nominal tidak valid!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        int saldoLama = db.getSaldo(userId);
+                        db.updateSaldo(userId, saldoLama + nominal);
+                        updateSaldoUI();
+                        Toast.makeText(this, "Top Up Berhasil!", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     private void loadStores() {
         allStores.clear();
         Cursor c = db.getAllRestoran();
-        while (c.moveToNext()) {
-            RestoranModel r = new RestoranModel();
-            r.id         = c.getInt(c.getColumnIndexOrThrow("id"));
-            r.namaResto  = c.getString(c.getColumnIndexOrThrow("nama_resto"));
-            r.alamatResto = c.getString(c.getColumnIndexOrThrow("alamat_resto"));
-            r.kategori   = c.getString(c.getColumnIndexOrThrow("kategori"));
-            r.rating     = c.getFloat(c.getColumnIndexOrThrow("rating"));
-            r.gambarUrl  = c.getString(c.getColumnIndexOrThrow("gambar_url"));
-            allStores.add(r);
+        try {
+            while (c != null && c.moveToNext()) {
+                RestoranModel r = new RestoranModel();
+                r.id          = c.getInt(c.getColumnIndexOrThrow("id"));
+                r.namaResto   = c.getString(c.getColumnIndexOrThrow("nama_resto"));
+                r.alamatResto = c.getString(c.getColumnIndexOrThrow("alamat_resto"));
+                r.kategori    = c.getString(c.getColumnIndexOrThrow("kategori"));
+                r.rating      = c.getFloat(c.getColumnIndexOrThrow("rating"));
+                r.gambarUrl   = c.getString(c.getColumnIndexOrThrow("gambar_url"));
+                allStores.add(r);
+            }
+        } finally {
+            if (c != null) c.close();
         }
-        c.close();
         filterStores("");
     }
 
@@ -113,28 +165,15 @@ public class HomeActivity extends Activity {
         startActivity(intent);
     }
 
-    private void setupBottomNav(SharedPreferences prefs) {
-        LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
-        LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
-        LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
-        LinearLayout layoutNavTransaksi = findViewById(R.id.layoutNavTransaksi);
-        LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
-
-        layoutNavHome.setOnClickListener(v -> { /* Sudah di beranda */ });
-
-        // DIALIRKAN KE FAVORITE ACTIVITY
-        layoutNavFavorit.setOnClickListener(v -> {
-            Intent intent = new Intent(this, FavoriteActivity.class);
-            startActivity(intent);
-        });
-
-        layoutNavCart.setOnClickListener(v ->
-                Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
-
-        layoutNavTransaksi.setOnClickListener(v ->
+    private void setupBottomNav() {
+        findViewById(R.id.layoutNavHome).setOnClickListener(v -> {});
+        findViewById(R.id.layoutNavFavorit).setOnClickListener(v ->
+                startActivity(new Intent(this, FavoriteActivity.class)));
+        findViewById(R.id.layoutNavCart).setOnClickListener(v ->
+                startActivity(new Intent(this, CartActivity.class)));
+        findViewById(R.id.layoutNavTransaksi).setOnClickListener(v ->
                 startActivity(new Intent(this, TransactionActivity.class)));
-
-        layoutNavProfile.setOnClickListener(v ->
+        findViewById(R.id.layoutNavProfile).setOnClickListener(v ->
                 Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
     }
 }

@@ -103,11 +103,14 @@
                     android:textColor="#000000" />
 
                 <ImageView
+                    android:id="@+id/btnTambahSaldo"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:src="@drawable/ic_add_circle"
                     android:contentDescription="tambah saldo"
-                    android:layout_marginEnd="16dp" />
+                    android:layout_marginEnd="16dp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <View
                     android:layout_width="1dp"
@@ -116,48 +119,17 @@
                     android:layout_marginEnd="16dp" />
 
                 <LinearLayout
-                    android:id="@+id/btnPay"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:layout_marginEnd="14dp">
-
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:src="@drawable/ic_pay"
-                        android:contentDescription="pay" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pay"
-                        android:textSize="9sp"
-                        android:textColor="#555555"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
-
-                <LinearLayout
                     android:id="@+id/btnHistory"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center">
+                    android:gravity="center"
+                    android:clickable="true"    android:focusable="true">   <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_history"
+                    android:contentDescription="history" />
 
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:src="@drawable/ic_history"
-                        android:contentDescription="history" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="History"
-                        android:textSize="9sp"
-                        android:textColor="#555555"
-                        android:layout_marginTop="2dp" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -256,7 +228,6 @@
         android:orientation="horizontal"
         android:paddingStart="10dp"
         android:paddingEnd="10dp">
-
         <LinearLayout
             android:id="@+id/layoutNavHome"
             android:layout_width="0dp"
@@ -343,7 +314,5 @@
                 android:src="@drawable/ic_nav_profile"
                 android:contentDescription="profil" />
         </LinearLayout>
-
     </LinearLayout>
-
 </RelativeLayout>

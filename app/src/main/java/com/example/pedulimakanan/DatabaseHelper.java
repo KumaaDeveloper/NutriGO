@@ -12,7 +12,8 @@ import org.json.JSONObject;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME    = "db_pedulimakanan.db";
-    private static final int    DB_VERSION = 2;
+    // UPDATE: Naikkan DB_VERSION ke 3 agar tabel baru otomatis terbuat saat aplikasi di-run
+    private static final int    DB_VERSION = 4;
 
     // ── Table names ──────────────────────────────────────────────────
     public static final String TABLE_USERS           = "users";
@@ -22,6 +23,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String TABLE_DETAIL_TRANSAKSI= "detail_transaksi";
     public static final String TABLE_FAVORIT         = "favorit";
     public static final String TABLE_PENDING_USERS   = "pending_users";
+    // TAMBAHAN: Nama tabel keranjang belanja belanjaan umum
+    public static final String TABLE_KERANJANG       = "keranjang";
 
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -39,7 +42,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "password TEXT NOT NULL," +
                 "kode_verifikasi TEXT," +
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                "alamat_default TEXT" +
+                "alamat_default TEXT," +
+                "saldo INTEGER DEFAULT 0" + // TAMBAHAN KOLOM SALDO
                 ")");
 
         // PENDING_USERS (holds registrations awaiting verification if needed)
@@ -107,11 +111,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "FOREIGN KEY(restoran_id) REFERENCES restoran(id)" +
                 ")");
 
+        // TAMBAHAN: Eksekusi SQL Pembuatan Tabel Keranjang Belanja Baru
+        db.execSQL("CREATE TABLE " + TABLE_KERANJANG + " (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "user_id INTEGER NOT NULL," +
+                "restoran_id INTEGER NOT NULL," +
+                "menu_id INTEGER NOT NULL," +
+                "jumlah INTEGER NOT NULL," +
+                "FOREIGN KEY(user_id) REFERENCES users(id)," +
+                "FOREIGN KEY(restoran_id) REFERENCES restoran(id)," +
+                "FOREIGN KEY(menu_id) REFERENCES menu(id)" +
+                ")");
+
         seedData(db);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // TAMBAHAN: Drop table keranjang jika database di-upgrade
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_KERANJANG);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_DETAIL_TRANSAKSI);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRANSAKSI);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_FAVORIT);
@@ -378,4 +396,99 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                         "WHERE f.user_id=?",
                 new String[]{String.valueOf(userId)});
     }
+
+    // ════════════════════════════════════════════════════════════════
+    //  TAMBAHAN LOGIKA BARU: LOGIKA DATABASE KERANJANG BELANJA (CART)
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * Menyimpan menu ke dalam database keranjang belanja umum.
+     * Jika menu dari restoran tersebut sudah ada di keranjang untuk user ini, update jumlahnya.
+     * Jika belum ada, lakukan insert baris baru.
+     */
+    public boolean tambahKeKeranjang(int userId, int restoranId, int menuId, int jumlah) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        // Cek apakah item menu ini sudah pernah dimasukkan ke keranjang oleh user yang sama
+        Cursor c = db.rawQuery(
+                "SELECT id, jumlah FROM " + TABLE_KERANJANG +
+                        " WHERE user_id=? AND restoran_id=? AND menu_id=?",
+                new String[]{String.valueOf(userId), String.valueOf(restoranId), String.valueOf(menuId)});
+
+        boolean success;
+        ContentValues cv = new ContentValues();
+
+        if (c.moveToFirst()) {
+            // Jika item sudah ada di keranjang, akumulasikan jumlah lamanya dengan kuantitas baru
+            int idLama = c.getInt(0);
+            int jumlahLama = c.getInt(1);
+            cv.put("jumlah", jumlahLama + jumlah);
+
+            int rows = db.update(TABLE_KERANJANG, cv, "id=?", new String[]{String.valueOf(idLama)});
+            success = rows > 0;
+        } else {
+            // Jika item belum ada, buat record/data keranjang baru
+            cv.put("user_id", userId);
+            cv.put("restoran_id", restoranId);
+            cv.put("menu_id", menuId);
+            cv.put("jumlah", jumlah);
+
+            long rowId = db.insert(TABLE_KERANJANG, null, cv);
+            success = rowId != -1;
+        }
+        c.close();
+        return success;
+    }
+
+    /** Mengambil semua item list belanja di dalam tabel keranjang milik user tertentu */
+    public Cursor getKeranjangByUser(int userId) {
+        return getReadableDatabase().rawQuery(
+                "SELECT k.id, k.restoran_id, k.menu_id, k.jumlah, " +
+                        "m.nama_item AS nama_item, " + // Dikasih alias tegas
+                        "m.harga AS harga, " +         // Dikasih alias tegas
+                        "r.nama_resto AS nama_resto " +
+                        "FROM " + TABLE_KERANJANG + " k " +
+                        "JOIN " + TABLE_MENU + " m ON k.menu_id = m.id " +
+                        "JOIN " + TABLE_RESTORAN + " r ON k.restoran_id = r.id " +
+                        "WHERE k.user_id = ?",
+                new String[]{String.valueOf(userId)});
+    }
+
+    /** Menghapus satu item spesifik dari daftar keranjang belanja */
+    public void hapusItemKeranjang(int keranjangId) {
+        getWritableDatabase().delete(TABLE_KERANJANG, "id=?", new String[]{String.valueOf(keranjangId)});
+    }
+
+    /** Mengosongkan seluruh isi keranjang belanja user setelah proses checkout sukses */
+    public void bersihkanKeranjang(int userId) {
+        getWritableDatabase().delete(TABLE_KERANJANG, "user_id=?", new String[]{String.valueOf(userId)});
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  TAMBAHAN: LOGIKA SALDO USER
+    // ════════════════════════════════════════════════════════════════
+
+    public int getSaldo(int userId) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT saldo FROM " + TABLE_USERS + " WHERE id=?", new String[]{String.valueOf(userId)});
+        int saldo = 0;
+        if (c.moveToFirst()) {
+            saldo = c.getInt(0);
+        }
+        c.close();
+        return saldo;
+    }
+
+    public boolean updateSaldo(int userId, int jumlahBaru) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put("saldo", jumlahBaru);
+        int rows = db.update(TABLE_USERS, cv, "id=?", new String[]{String.valueOf(userId)});
+        return rows > 0;
+    }
 }
+
+
+
+
+

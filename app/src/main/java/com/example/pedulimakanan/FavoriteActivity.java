@@ -27,7 +27,6 @@ public class FavoriteActivity extends Activity {
         findViewById(R.id.btnBackFavorite).setOnClickListener(v -> finish());
         llFavoriteContainer = findViewById(R.id.llFavoriteContainer);
 
-        // Muat data restoran yang difavoritkan
         loadFavorites();
 
         // ── INTEGRASI LOGIKA BOTTOM NAVBAR MANUAL ──
@@ -39,17 +38,20 @@ public class FavoriteActivity extends Activity {
 
         layoutNavHome.setOnClickListener(v -> {
             Intent intent = new Intent(this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP); // Bersihkan stack agar kembali ke home utama
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
             finish();
         });
 
         layoutNavFavorit.setOnClickListener(v -> {
-            // Sudah berada di halaman favorit, tidak perlu aksi tambahan
+            // Sudah berada di halaman favorit
         });
 
-        layoutNavCart.setOnClickListener(v ->
-                Toast.makeText(this, "Keranjang (coming soon)", Toast.LENGTH_SHORT).show());
+        // FIX TOTAL: Singkirkan Toast "coming soon", langsung luncurkan CartActivity
+        layoutNavCart.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CartActivity.class);
+            startActivity(intent);
+        });
 
         layoutNavTransaksi.setOnClickListener(v -> {
             Intent intent = new Intent(this, TransactionActivity.class);
@@ -64,7 +66,6 @@ public class FavoriteActivity extends Activity {
         llFavoriteContainer.removeAllViews();
         if (userId == -1) return;
 
-        // Mengambil data dari Query milik DatabaseHelper
         Cursor c = db.getFavoritByUser(userId);
 
         if (!c.moveToFirst()) {
@@ -82,7 +83,6 @@ public class FavoriteActivity extends Activity {
             String namaResto = c.getString(c.getColumnIndexOrThrow("nama_resto"));
             String kategori  = c.getString(c.getColumnIndexOrThrow("kategori"));
 
-            // Menggunakan layout item_restaurant_card milikmu agar visualnya seragam
             View card = LayoutInflater.from(this)
                     .inflate(R.layout.item_restaurant_card, llFavoriteContainer, false);
 
@@ -94,23 +94,18 @@ public class FavoriteActivity extends Activity {
             tvKat.setText(kategori);
             imgResto.setImageResource(getRestoImage(namaResto));
 
-            // Sembunyikan atau matikan fungsi klik tombol hati kecil di dalam halaman Favorit
-            // agar user tidak bingung (atau biarkan jika ingin bisa langsung unfavorite dari sini)
             ImageView imgBtnFavorite = card.findViewById(R.id.imgBtnFavorite);
             if (imgBtnFavorite != null) {
-                // Di halaman favorit, kita kunci agar tampil merah penuh secara konstan
                 imgBtnFavorite.setImageResource(R.drawable.ic_favorite);
                 imgBtnFavorite.setColorFilter(android.graphics.Color.parseColor("#FF4A4A"));
 
-                // Opsional: jika ingin klik hati langsung menghapus item dari list favorit secara real-time:
                 imgBtnFavorite.setOnClickListener(v -> {
                     db.toggleFavorit(userId, restoId);
                     Toast.makeText(this, namaResto + " dihapus dari favorit", Toast.LENGTH_SHORT).show();
-                    loadFavorites(); // Refresh list secara instan
+                    loadFavorites();
                 });
             }
 
-            // Jika kartu favorit diklik, langsung arahkan ke Detail Toko
             card.setOnClickListener(v -> {
                 Intent intent = new Intent(this, StoreDetailActivity.class);
                 intent.putExtra("restoran_id", restoId);

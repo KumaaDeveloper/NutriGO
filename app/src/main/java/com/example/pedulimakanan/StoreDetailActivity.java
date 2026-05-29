@@ -17,7 +17,6 @@ public class StoreDetailActivity extends Activity {
 
     private static final int BIAYA_ONGKIR = 6000;
 
-    // Fix 1: correct generic type — Map<String, Integer> not Map<String, HashMap>
     private static final Map<String, Integer> PROMO_MAP = new HashMap<>();
     static {
         PROMO_MAP.put("HEMAT10",  10000);
@@ -47,6 +46,7 @@ public class StoreDetailActivity extends Activity {
         restoranId   = getIntent().getIntExtra("restoran_id", -1);
         restoranNama = getIntent().getStringExtra("restoran_nama");
 
+        // PERBAIKAN: Mengembalikan key ke "user_id" agar terbaca dari session LoginActivity kamu
         SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
         userId = prefs.getInt("user_id", -1);
 
@@ -65,7 +65,10 @@ public class StoreDetailActivity extends Activity {
         tvOngkir.setText("Rp " + formatRupiah(BIAYA_ONGKIR));
 
         findViewById(R.id.btnAddPromo).setOnClickListener(v -> applyPromo());
-        findViewById(R.id.btnPesan).setOnClickListener(v -> placeOrder());
+
+        // Inisialisasi aksi tombol
+        findViewById(R.id.btnBayarLangsung).setOnClickListener(v -> placeOrderDirectly());
+        findViewById(R.id.btnTambahKeranjang).setOnClickListener(v -> addToCartDatabase());
 
         loadMenu();
         updateSummary();
@@ -80,7 +83,6 @@ public class StoreDetailActivity extends Activity {
             int    harga  = c.getInt(c.getColumnIndexOrThrow("harga"));
             String desc   = c.getString(c.getColumnIndexOrThrow("deskripsi"));
 
-            // Fix 2: item_menu_row layout must exist in res/layout/
             View row = LayoutInflater.from(this)
                     .inflate(R.layout.item_menu_row, llMenuContainer, false);
 
@@ -96,7 +98,6 @@ public class StoreDetailActivity extends Activity {
             tvHarga.setText("Rp " + formatRupiah(harga));
             tvDesc.setText(desc);
 
-            // Fix 3: always fall back to placeholder — no missing drawable crash
             imgMenu.setImageResource(getMenuImage(nama));
 
             int currentQty = cart.containsKey(menuId) ? cart.get(menuId).jumlah : 0;
@@ -156,15 +157,16 @@ public class StoreDetailActivity extends Activity {
         }
     }
 
-    private void placeOrder() {
+    private void placeOrderDirectly() {
         if (cart.isEmpty()) {
-            Toast.makeText(this, "Keranjang masih kosong", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Pilih menu terlebih dahulu", Toast.LENGTH_SHORT).show();
             return;
         }
         if (userId == -1) {
             Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
             return;
         }
+
         try {
             JSONArray cartArray = new JSONArray();
             int subtotal = 0;
@@ -178,26 +180,61 @@ public class StoreDetailActivity extends Activity {
                 subtotal += item.harga * item.jumlah;
             }
             int total = Math.max(0, subtotal + BIAYA_ONGKIR - appliedDiscount);
+
+            // --- [UPDATE SALDO]: Tambahan Validasi Saldo ---
+            int saldoUser = db.getSaldo(userId);
+            if (saldoUser < total) {
+                Toast.makeText(this, "Saldo tidak cukup! Sisa saldo: Rp. " + formatRupiah(saldoUser), Toast.LENGTH_LONG).show();
+                return; // Stop proses jika saldo kurang
+            }
+
+            // Jika saldo cukup, potong saldo dan buat transaksi
+            db.updateSaldo(userId, saldoUser - total);
+            // -----------------------------------------------
+
             long transaksiId = db.buatTransaksi(userId, restoranId, cartArray, total);
             if (transaksiId != -1) {
-                Toast.makeText(this, "Pesanan berhasil!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Pembayaran Berhasil! Saldo dipotong.", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(this, TransactionActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(intent);
                 finish();
             } else {
-                Toast.makeText(this, "Gagal membuat pesanan", Toast.LENGTH_SHORT).show();
+                // Refund jika terjadi kesalahan saat insert transaksi ke DB
+                db.updateSaldo(userId, saldoUser);
+                Toast.makeText(this, "Gagal memproses transaksi", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    /**
-     * Returns a drawable for the menu item.
-     * If you haven't added a specific image yet, it falls back to the placeholder
-     * so the app never crashes from a missing drawable.
-     */
+    private void addToCartDatabase() {
+        if (cart.isEmpty()) {
+            Toast.makeText(this, "Pilih menu terlebih dahulu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (userId == -1) {
+            Toast.makeText(this, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        boolean allSaved = true;
+        for (CartItem item : cart.values()) {
+            boolean success = db.tambahKeKeranjang(userId, restoranId, item.menuId, item.jumlah);
+            if (!success) {
+                allSaved = false;
+            }
+        }
+
+        if (allSaved) {
+            Toast.makeText(this, "Berhasil ditambahkan ke keranjang belanja!", Toast.LENGTH_SHORT).show();
+            finish();
+        } else {
+            Toast.makeText(this, "Beberapa menu gagal dimasukkan ke keranjang", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private int getMenuImage(String nama) {
         if (nama == null) return R.drawable.img_placeholder_food;
         switch (nama.toLowerCase().trim()) {

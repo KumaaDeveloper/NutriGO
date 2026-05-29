@@ -11,7 +11,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.pedulimakanan"
+        // PERBAIKAN: Identitas diganti agar unik dan tidak bentrok dengan projek latihan Intent
+        applicationId = "com.example.pedulimakanan.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

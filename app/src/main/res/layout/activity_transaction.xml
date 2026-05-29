@@ -80,6 +80,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_nav_home_active"
+                android:alpha="0.5"
                 android:contentDescription="home" />
         </LinearLayout>
 

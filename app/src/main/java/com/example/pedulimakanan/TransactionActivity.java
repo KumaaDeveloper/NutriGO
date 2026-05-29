@@ -24,29 +24,31 @@ public class TransactionActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
         userId = prefs.getInt("user_id", -1);
 
-        findViewById(R.id.btnBackTransaction).setOnClickListener(v -> finish());
         llTransaksiContainer = findViewById(R.id.llTransaksiContainer);
 
+        View btnBack = findViewById(R.id.btnBackTransaction);
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
+
+        setupBottomNavigation();
         loadTransactions();
+    }
 
-        // ── INTEGRASI BOTTOM NAV UNTUK TRANSACTION ACTIVITY ──
-        LinearLayout layoutNavHome    = findViewById(R.id.layoutNavHome);
-        LinearLayout layoutNavFavorit = findViewById(R.id.layoutNavFavorit);
+    private void setupBottomNavigation() {
+        findViewById(R.id.layoutNavHome).setOnClickListener(v -> {
+            Intent intent = new Intent(this, HomeActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
 
-        if (layoutNavHome != null) {
-            layoutNavHome.setOnClickListener(v -> {
-                Intent intent = new Intent(this, HomeActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-                finish();
-            });
-        }
+        findViewById(R.id.layoutNavFavorit).setOnClickListener(v ->
+                startActivity(new Intent(this, FavoriteActivity.class)));
 
-        if (layoutNavFavorit != null) {
-            layoutNavFavorit.setOnClickListener(v -> {
-                startActivity(new Intent(this, FavoriteActivity.class));
-            });
-        }
+        findViewById(R.id.layoutNavCart).setOnClickListener(v ->
+                startActivity(new Intent(this, CartActivity.class)));
+
+        findViewById(R.id.layoutNavProfile).setOnClickListener(v ->
+                Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
     }
 
     private void loadTransactions() {
@@ -54,49 +56,43 @@ public class TransactionActivity extends Activity {
         if (userId == -1) return;
 
         Cursor c = db.getTransaksiByUser(userId);
-        if (!c.moveToFirst()) {
-            TextView empty = new TextView(this);
-            empty.setText("Belum ada transaksi.");
-            empty.setPadding(32, 32, 32, 32);
-            llTransaksiContainer.addView(empty);
-            c.close();
-            return;
+        try {
+            if (c != null && c.moveToFirst()) {
+                do {
+                    int transaksiId = c.getInt(c.getColumnIndexOrThrow("id"));
+                    String namaResto = c.getString(c.getColumnIndexOrThrow("nama_resto"));
+                    int total = c.getInt(c.getColumnIndexOrThrow("total_harga"));
+                    String tanggal = c.getString(c.getColumnIndexOrThrow("tanggal"));
+                    String status = c.getString(c.getColumnIndexOrThrow("status_pesanan"));
+
+                    View row = LayoutInflater.from(this).inflate(R.layout.item_transaction_row, llTransaksiContainer, false);
+
+                    ((TextView) row.findViewById(R.id.tvTransNamaResto)).setText(namaResto);
+                    ((TextView) row.findViewById(R.id.tvTransTotal)).setText("Rp " + formatRupiah(total));
+                    ((TextView) row.findViewById(R.id.tvTransTanggal)).setText(formatTanggal(tanggal));
+                    ((TextView) row.findViewById(R.id.tvTransStatus)).setText(status);
+                    ((ImageView) row.findViewById(R.id.imgTransResto)).setImageResource(getRestoImage(namaResto));
+
+                    row.findViewById(R.id.btnTransDetail).setOnClickListener(v -> {
+                        Intent intent = new Intent(this, TransactionDetailActivity.class);
+                        intent.putExtra("transaksi_id", transaksiId);
+                        intent.putExtra("restoran_nama", namaResto);
+                        intent.putExtra("total_harga", total);
+                        intent.putExtra("tanggal", tanggal);
+                        startActivity(intent);
+                    });
+
+                    llTransaksiContainer.addView(row);
+                } while (c.moveToNext());
+            } else {
+                TextView empty = new TextView(this);
+                empty.setText("Belum ada transaksi.");
+                empty.setPadding(32, 32, 32, 32);
+                llTransaksiContainer.addView(empty);
+            }
+        } finally {
+            if (c != null) c.close();
         }
-        do {
-            int    transaksiId = c.getInt(c.getColumnIndexOrThrow("id"));
-            String namaResto   = c.getString(c.getColumnIndexOrThrow("nama_resto"));
-            int    total       = c.getInt(c.getColumnIndexOrThrow("total_harga"));
-            String tanggal     = c.getString(c.getColumnIndexOrThrow("tanggal"));
-            String status      = c.getString(c.getColumnIndexOrThrow("status_pesanan"));
-
-            View row = LayoutInflater.from(this)
-                    .inflate(R.layout.item_transaction_row, llTransaksiContainer, false);
-
-            TextView tvNama    = row.findViewById(R.id.tvTransNamaResto);
-            TextView tvTotal   = row.findViewById(R.id.tvTransTotal);
-            TextView tvTanggal = row.findViewById(R.id.tvTransTanggal);
-            TextView tvStatus  = row.findViewById(R.id.tvTransStatus);
-            ImageView imgResto = row.findViewById(R.id.imgTransResto);
-            Button btnDetail   = row.findViewById(R.id.btnTransDetail);
-
-            tvNama.setText(namaResto);
-            tvTotal.setText("Rp" + formatRupiah(total));
-            tvTanggal.setText(formatTanggal(tanggal));
-            tvStatus.setText(status);
-            imgResto.setImageResource(getRestoImage(namaResto));
-
-            btnDetail.setOnClickListener(v -> {
-                Intent intent = new Intent(this, TransactionDetailActivity.class);
-                intent.putExtra("transaksi_id", transaksiId);
-                intent.putExtra("restoran_nama", namaResto);
-                intent.putExtra("total_harga", total);
-                intent.putExtra("tanggal", tanggal);
-                startActivity(intent);
-            });
-
-            llTransaksiContainer.addView(row);
-        } while (c.moveToNext());
-        c.close();
     }
 
     private int getRestoImage(String nama) {
@@ -116,13 +112,10 @@ public class TransactionActivity extends Activity {
     }
 
     private String formatTanggal(String raw) {
-        // raw is "2026-05-12 09:30:00", show as "12 Mei 2026"
         try {
             String[] parts = raw.split(" ")[0].split("-");
-            String[] bulan = {"","Jan","Feb","Mar","Apr","Mei","Jun",
-                              "Jul","Agu","Sep","Okt","Nov","Des"};
-            int m = Integer.parseInt(parts[1]);
-            return parts[2] + " " + bulan[m] + " " + parts[0];
+            String[] bulan = {"","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"};
+            return parts[2] + " " + bulan[Integer.parseInt(parts[1])] + " " + parts[0];
         } catch (Exception e) { return raw; }
     }
 }
