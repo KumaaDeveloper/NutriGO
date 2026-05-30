@@ -1,318 +1,392 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient">
+    android:layout_height="match_parent">
 
-    <ScrollView
+    <!-- ═══ MAIN SCREEN ═══ -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/bottomNavigationContainer"
-        android:scrollbars="none"
-        android:overScrollMode="never">
+        android:background="@drawable/bg_gradient">
 
-        <LinearLayout
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent"
+            android:layout_above="@id/bottomNavigationContainer"
+            android:scrollbars="none"
+            android:overScrollMode="never">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_top_wave"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:paddingTop="28dp"
-                android:paddingBottom="32dp">
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvGreeting"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="Mau Makan Apa\nKamu Hari Ini?"
-                    android:textSize="26sp"
-                    android:textStyle="bold"
-                    android:textColor="#000000"
-                    android:lineSpacingExtra="2dp" />
-
+                <!-- Top wave: greeting + search -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="18dp"
-                    android:background="@drawable/bg_search"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_top_wave"
+                    android:orientation="vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:paddingTop="28dp"
+                    android:paddingBottom="32dp">
+
+                    <TextView
+                        android:id="@+id/tvGreeting"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:lineSpacingExtra="2dp"
+                        android:text="Mau Makan Apa\nKamu Hari Ini?"
+                        android:textColor="#000000"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@drawable/bg_search"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:contentDescription="search"
+                            android:src="@drawable/ic_search" />
+
+                        <EditText
+                            android:id="@+id/etSearchHome"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="#00000000"
+                            android:hint="Cari Makanan"
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:textColor="#000000"
+                            android:textColorHint="#999999"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Balance bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginEnd="20dp"
+                    android:background="@drawable/bg_input"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp">
 
                     <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:src="@drawable/ic_search"
-                        android:contentDescription="search" />
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="saldo"
+                        android:src="@drawable/ic_coin" />
 
-                    <EditText
-                        android:id="@+id/etSearchHome"
+                    <TextView
+                        android:id="@+id/tvSaldo"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:background="#00000000"
-                        android:hint="Cari Makanan"
-                        android:textSize="14sp"
+                        android:layout_weight="1"
+                        android:text="Rp 0"
                         android:textColor="#000000"
-                        android:textColorHint="#999999"
-                        android:inputType="text"
-                        android:imeOptions="actionSearch"
-                        android:maxLines="1" />
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/btnTambahSaldo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_button"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="7dp"
+                        android:paddingBottom="7dp">
+
+                        <ImageView
+                            android:layout_width="13dp"
+                            android:layout_height="13dp"
+                            android:contentDescription="tambah"
+                            android:src="@drawable/ic_add_circle" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:text="Top Up"
+                            android:textColor="#000000"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
 
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
-                android:background="@drawable/bg_input"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp">
-
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_coin"
-                    android:contentDescription="coin" />
-
-                <TextView
-                    android:id="@+id/tvSaldo"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="6dp"
-                    android:text="Rp. 10.000"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="#000000" />
-
-                <ImageView
-                    android:id="@+id/btnTambahSaldo"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_add_circle"
-                    android:contentDescription="tambah saldo"
-                    android:layout_marginEnd="16dp"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="28dp"
-                    android:background="#DDDDDD"
-                    android:layout_marginEnd="16dp" />
-
+                <!-- ── Category chips ── -->
                 <LinearLayout
-                    android:id="@+id/btnHistory"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:clickable="true"    android:focusable="true">   <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_history"
-                    android:contentDescription="history" />
+                    android:layout_marginTop="20dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:orientation="horizontal">
 
+                    <TextView
+                        android:id="@+id/chipSemua"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:gravity="center"
+                        android:text="Semua"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_chip_active"
+                        android:textColor="#FFFFFF"/>
+
+                    <TextView
+                        android:id="@+id/chipMakanan"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="6dp"
+                        android:gravity="center"
+                        android:text="🍽 Makanan"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:textColor="#246E9B"/>
+
+                    <TextView
+                        android:id="@+id/chipMinuman"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="6dp"
+                        android:gravity="center"
+                        android:text="🥤 Minuman"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:textColor="#246E9B"/>
+
+                    <TextView
+                        android:id="@+id/chipSnack"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:gravity="center"
+                        android:text="🍿 Snack"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_chip_inactive"
+                        android:textColor="#246E9B"/>
                 </LinearLayout>
 
+                <!-- ── Restaurant grid ── -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvStores"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:clipToPadding="false" />
+
+                <!-- Empty state -->
+                <TextView
+                    android:id="@+id/tvEmptyStores"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:paddingTop="40dp"
+                    android:paddingBottom="40dp"
+                    android:text="Tidak ada restoran\ndi kategori ini"
+                    android:textColor="#888888"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="96dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Bottom nav -->
+        <LinearLayout
+            android:id="@+id/bottomNavigationContainer"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_search"
+            android:elevation="10dp"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+
+            <LinearLayout android:id="@+id/layoutNavHome"
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:gravity="center">
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:gravity="center" android:background="@drawable/bg_nav_active"
+                    android:paddingStart="14dp" android:paddingEnd="14dp"
+                    android:paddingTop="8dp" android:paddingBottom="8dp">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_nav_home_active" android:contentDescription="home"/>
+                </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:layout_marginTop="22dp"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Makanan Sehat Populer"
-                    android:textStyle="bold"
-                    android:textSize="15sp"
-                    android:textColor="#000000" />
-
-                <TextView
-                    android:id="@+id/tvLihatSemuaPopular"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lihat semua"
-                    android:textSize="11sp"
-                    android:textColor="#246E9B" />
+            <LinearLayout android:id="@+id/layoutNavFavorit"
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:gravity="center">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_favorite" android:contentDescription="favorit"/>
             </LinearLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvPopularStores"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:clipToPadding="false"
-                android:orientation="horizontal" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:layout_marginTop="22dp"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Makanan Sehat Murah"
-                    android:textStyle="bold"
-                    android:textSize="15sp"
-                    android:textColor="#000000" />
-
-                <TextView
-                    android:id="@+id/tvLihatSemuaBudget"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lihat semua"
-                    android:textSize="11sp"
-                    android:textColor="#246E9B" />
+            <LinearLayout android:id="@+id/layoutNavCart"
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:gravity="center">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_cart" android:contentDescription="keranjang"/>
             </LinearLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvBudgetStores"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:clipToPadding="false"
-                android:orientation="horizontal" />
+            <LinearLayout android:id="@+id/layoutNavTransaksi"
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:gravity="center">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_transaction" android:contentDescription="transaksi"/>
+            </LinearLayout>
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="96dp" />
-
+            <LinearLayout android:id="@+id/layoutNavProfile"
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:gravity="center">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                    android:src="@drawable/ic_nav_profile" android:contentDescription="profil"/>
+            </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+    </RelativeLayout>
+
+    <!-- ═══ TOP UP BOTTOM SHEET ═══ -->
+    <View
+        android:id="@+id/topupDimOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#88000000"
+        android:visibility="gone"/>
 
     <LinearLayout
-        android:id="@+id/bottomNavigationContainer"
+        android:id="@+id/topupSheet"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="20dp"
-        android:background="@drawable/bg_search"
-        android:elevation="10dp"
-        android:orientation="horizontal"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp">
-        <LinearLayout
-            android:id="@+id/layoutNavHome"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#FFFFFF"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="32dp"
+        android:visibility="gone">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:background="@drawable/bg_nav_active"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
+        <View android:layout_width="40dp" android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp" android:layout_marginBottom="4dp"
+            android:background="#CCCCCC"/>
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_nav_home_active"
-                    android:contentDescription="home" />
-            </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="8dp" android:layout_marginBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Top Up Saldo"
+                android:textSize="18sp" android:textStyle="bold" android:textColor="#000000"/>
+            <ImageButton android:id="@+id/btnTopupClose"
+                android:layout_width="32dp" android:layout_height="32dp"
+                android:background="#00000000"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:contentDescription="tutup"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/layoutNavFavorit"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
+        <TextView android:id="@+id/tvSheetSaldo"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Saldo saat ini: Rp 0"
+            android:textSize="13sp" android:textColor="#246E9B"
+            android:textStyle="bold" android:layout_marginBottom="16dp"/>
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_favorite"
-                android:contentDescription="favorit" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="10dp">
+            <Button android:id="@+id/btnTopup10" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1" android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 10.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
+            <Button android:id="@+id/btnTopup25" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1"
+                android:layout_marginStart="6dp" android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 25.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
+            <Button android:id="@+id/btnTopup50" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1" android:layout_marginStart="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 50.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/layoutNavCart"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_cart"
-                android:contentDescription="keranjang" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <Button android:id="@+id/btnTopup100" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1" android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 100.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
+            <Button android:id="@+id/btnTopup200" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1"
+                android:layout_marginStart="6dp" android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 200.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
+            <Button android:id="@+id/btnTopup500" android:layout_width="0dp"
+                android:layout_height="44dp" android:layout_weight="1" android:layout_marginStart="6dp"
+                android:background="@drawable/bg_button" android:text="Rp 500.000"
+                android:textAllCaps="false" android:textSize="12sp" android:textColor="#000000"/>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/layoutNavTransaksi"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#EEEEEE" android:layout_marginBottom="14dp"/>
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_transaction"
-                android:contentDescription="transaksi" />
-        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Atau masukkan nominal lain:"
+            android:textSize="12sp" android:textColor="#555555" android:layout_marginBottom="8dp"/>
 
-        <LinearLayout
-            android:id="@+id/layoutNavProfile"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_nav_profile"
-                android:contentDescription="profil" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="48dp"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <EditText android:id="@+id/etTopupCustom"
+                android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:background="@drawable/bg_input" android:hint="Nominal (contoh: 75000)"
+                android:inputType="number" android:paddingStart="14dp" android:paddingEnd="14dp"
+                android:textSize="13sp" android:textColor="#000000" android:textColorHint="#999999"/>
+            <Button android:id="@+id/btnTopupCustomConfirm"
+                android:layout_width="wrap_content" android:layout_height="44dp"
+                android:layout_marginStart="10dp" android:background="@drawable/bg_button"
+                android:text="Konfirmasi" android:textAllCaps="false"
+                android:textSize="13sp" android:textStyle="bold" android:textColor="#000000"/>
         </LinearLayout>
     </LinearLayout>
-</RelativeLayout>
+
+</FrameLayout>

@@ -1,18 +1,17 @@
 package com.example.pedulimakanan;
 
+import android.animation.ObjectAnimator;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.text.InputType;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.*;
 
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -20,13 +19,23 @@ import java.util.List;
 
 public class HomeActivity extends Activity {
 
-    private RecyclerView rvPopularStores, rvBudgetStores;
-    private EditText etSearchHome;
     private DatabaseHelper db;
-
-    private List<RestoranModel> allStores = new ArrayList<>();
-    private RestaurantAdapter popularAdapter, budgetAdapter;
     private int userId;
+
+    // Store list
+    private RecyclerView rvStores;
+    private RestaurantAdapter storeAdapter;
+    private List<RestoranModel> allStores = new ArrayList<>();
+    private String activeCategory = "Semua"; // "Semua" | "Makanan" | "Minuman" | "Snack"
+    private String searchQuery = "";
+
+    // Category chip views
+    private TextView chipSemua, chipMakanan, chipMinuman, chipSnack;
+
+    // Top-up sheet
+    private View topupSheet, dimOverlay;
+    private TextView tvSheetSaldo;
+    private EditText etCustomAmount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +44,6 @@ public class HomeActivity extends Activity {
 
         db = new DatabaseHelper(this);
 
-        // 1. Cek Session Login
         SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
         userId = prefs.getInt("user_id", -1);
         String namaUser = prefs.getString("nama", "");
@@ -46,43 +54,48 @@ public class HomeActivity extends Activity {
             return;
         }
 
-        // 2. Set Greeting
+        // Greeting
         TextView tvGreeting = findViewById(R.id.tvGreeting);
         if (!namaUser.isEmpty()) {
             tvGreeting.setText("Halo, " + namaUser + "!\nMau Makan Apa Hari Ini?");
         }
 
-        // 3. Setup Tombol Topup & History
-        ImageView btnTambahSaldo = findViewById(R.id.btnTambahSaldo);
-        btnTambahSaldo.setOnClickListener(v -> showTopupDialog());
+        // Top Up button
+        findViewById(R.id.btnTambahSaldo).setOnClickListener(v -> showTopupSheet());
 
-        findViewById(R.id.btnHistory).setOnClickListener(v -> {
-            startActivity(new Intent(this, TransactionActivity.class));
+        // Search
+        EditText etSearch = findViewById(R.id.etSearchHome);
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int i, int i1, int i2) {}
+            @Override public void onTextChanged(CharSequence s, int i, int i1, int i2) {
+                searchQuery = s.toString();
+                applyFilter();
+            }
+            @Override public void afterTextChanged(Editable s) {}
         });
 
-        // 4. Setup Search
-        etSearchHome = findViewById(R.id.etSearchHome);
-        etSearchHome.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-            @Override public void onTextChanged(CharSequence s, int st, int b, int c) { filterStores(s.toString()); }
-            @Override public void afterTextChanged(android.text.Editable s) {}
-        });
+        // Category chips
+        chipSemua   = findViewById(R.id.chipSemua);
+        chipMakanan = findViewById(R.id.chipMakanan);
+        chipMinuman = findViewById(R.id.chipMinuman);
+        chipSnack   = findViewById(R.id.chipSnack);
 
-        // 5. Initialize RecyclerViews
-        rvPopularStores = findViewById(R.id.rvPopularStores);
-        rvBudgetStores  = findViewById(R.id.rvBudgetStores);
+        chipSemua.setOnClickListener(v   -> setCategory("Semua"));
+        chipMakanan.setOnClickListener(v -> setCategory(DatabaseHelper.TIPE_MAKANAN));
+        chipMinuman.setOnClickListener(v -> setCategory(DatabaseHelper.TIPE_MINUMAN));
+        chipSnack.setOnClickListener(v   -> setCategory(DatabaseHelper.TIPE_SNACK));
+        updateChipStyles();
 
-        popularAdapter = new RestaurantAdapter(this, new ArrayList<>(), this::openStore);
-        budgetAdapter  = new RestaurantAdapter(this, new ArrayList<>(), this::openStore);
-
-        rvPopularStores.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvPopularStores.setAdapter(popularAdapter);
-        rvBudgetStores.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvBudgetStores.setAdapter(budgetAdapter);
+        // RecyclerView — 2 columns grid
+        rvStores = findViewById(R.id.rvStores);
+        rvStores.setLayoutManager(new GridLayoutManager(this, 2));
+        storeAdapter = new RestaurantAdapter(this, new ArrayList<>(), this::openStore);
+        rvStores.setAdapter(storeAdapter);
 
         setupBottomNav();
-        loadStores();
+        loadAllStores();
         updateSaldoUI();
+        setupTopupSheet();
     }
 
     @Override
@@ -91,80 +104,141 @@ public class HomeActivity extends Activity {
         updateSaldoUI();
     }
 
-    private void updateSaldoUI() {
-        int saldo = db.getSaldo(userId);
-        TextView tvSaldo = findViewById(R.id.tvSaldo);
-        tvSaldo.setText("Rp. " + String.format("%,d", saldo).replace(',', '.'));
+    // ── Category filter ───────────────────────────────────────────────
+    private void setCategory(String category) {
+        activeCategory = category;
+        updateChipStyles();
+        applyFilter();
     }
 
-    private void showTopupDialog() {
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Top Up Saldo")
-                .setMessage("Masukkan nominal saldo:")
-                .setView(input)
-                .setPositiveButton("Top Up", (dialog, which) -> {
-                    String val = input.getText().toString();
-                    if (!val.isEmpty()) {
-                        int nominal = Integer.parseInt(val);
-                        if (nominal <= 0) {
-                            Toast.makeText(this, "Nominal tidak valid!", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        int saldoLama = db.getSaldo(userId);
-                        db.updateSaldo(userId, saldoLama + nominal);
-                        updateSaldoUI();
-                        Toast.makeText(this, "Top Up Berhasil!", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Batal", null)
-                .show();
+    private void updateChipStyles() {
+        // Active chip: dark blue bg + white text; inactive: light bg + dark text
+        setChipActive(chipSemua,   activeCategory.equals("Semua"));
+        setChipActive(chipMakanan, activeCategory.equals(DatabaseHelper.TIPE_MAKANAN));
+        setChipActive(chipMinuman, activeCategory.equals(DatabaseHelper.TIPE_MINUMAN));
+        setChipActive(chipSnack,   activeCategory.equals(DatabaseHelper.TIPE_SNACK));
     }
 
-    private void loadStores() {
+    private void setChipActive(TextView chip, boolean active) {
+        if (active) {
+            chip.setBackgroundResource(R.drawable.bg_chip_active);
+            chip.setTextColor(0xFFFFFFFF);
+        } else {
+            chip.setBackgroundResource(R.drawable.bg_chip_inactive);
+            chip.setTextColor(0xFF246E9B);
+        }
+    }
+
+    private void loadAllStores() {
         allStores.clear();
         Cursor c = db.getAllRestoran();
         try {
             while (c != null && c.moveToNext()) {
-                RestoranModel r = new RestoranModel();
-                r.id          = c.getInt(c.getColumnIndexOrThrow("id"));
-                r.namaResto   = c.getString(c.getColumnIndexOrThrow("nama_resto"));
-                r.alamatResto = c.getString(c.getColumnIndexOrThrow("alamat_resto"));
-                r.kategori    = c.getString(c.getColumnIndexOrThrow("kategori"));
-                r.rating      = c.getFloat(c.getColumnIndexOrThrow("rating"));
-                r.gambarUrl   = c.getString(c.getColumnIndexOrThrow("gambar_url"));
-                allStores.add(r);
+                allStores.add(cursorToModel(c));
             }
-        } finally {
-            if (c != null) c.close();
-        }
-        filterStores("");
+        } finally { if (c != null) c.close(); }
+        applyFilter();
     }
 
-    private void filterStores(String query) {
-        List<RestoranModel> popular = new ArrayList<>();
-        List<RestoranModel> budget  = new ArrayList<>();
+    private void applyFilter() {
+        List<RestoranModel> filtered = new ArrayList<>();
         for (RestoranModel r : allStores) {
-            if (r.namaResto.toLowerCase().contains(query.toLowerCase())) {
-                if (r.rating >= 4.0f) popular.add(r);
-                else                  budget.add(r);
-            }
+            boolean matchCategory = activeCategory.equals("Semua") || r.tipeMenu.equals(activeCategory);
+            boolean matchSearch   = r.namaResto.toLowerCase().contains(searchQuery.toLowerCase());
+            if (matchCategory && matchSearch) filtered.add(r);
         }
-        popularAdapter.updateData(popular);
-        budgetAdapter.updateData(budget);
+        storeAdapter.updateData(filtered);
+
+        // Show empty state if needed
+        TextView tvEmpty = findViewById(R.id.tvEmptyStores);
+        tvEmpty.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private RestoranModel cursorToModel(Cursor c) {
+        RestoranModel r = new RestoranModel();
+        r.id        = c.getInt(c.getColumnIndexOrThrow("id"));
+        r.namaResto = c.getString(c.getColumnIndexOrThrow("nama_resto"));
+        r.alamatResto = c.getString(c.getColumnIndexOrThrow("alamat_resto"));
+        r.kategori  = c.getString(c.getColumnIndexOrThrow("kategori"));
+        r.rating    = c.getFloat(c.getColumnIndexOrThrow("rating"));
+        r.gambarUrl = c.getString(c.getColumnIndexOrThrow("gambar_url"));
+        int tipeIdx = c.getColumnIndex("tipe_menu");
+        r.tipeMenu  = tipeIdx >= 0 ? c.getString(tipeIdx) : DatabaseHelper.TIPE_MAKANAN;
+        return r;
     }
 
     private void openStore(RestoranModel store) {
         Intent intent = new Intent(this, StoreDetailActivity.class);
-        intent.putExtra("restoran_id",    store.id);
-        intent.putExtra("restoran_nama",  store.namaResto);
+        intent.putExtra("restoran_id",     store.id);
+        intent.putExtra("restoran_nama",   store.namaResto);
         intent.putExtra("restoran_rating", store.rating);
         intent.putExtra("restoran_alamat", store.alamatResto);
         startActivity(intent);
     }
 
+    // ── Saldo ─────────────────────────────────────────────────────────
+    private void updateSaldoUI() {
+        int saldo = db.getSaldo(userId);
+        ((TextView) findViewById(R.id.tvSaldo)).setText("Rp " + fmt(saldo));
+        if (tvSheetSaldo != null)
+            tvSheetSaldo.setText("Saldo saat ini: Rp " + fmt(saldo));
+    }
+
+    // ── Top-up sheet ──────────────────────────────────────────────────
+    private void setupTopupSheet() {
+        topupSheet     = findViewById(R.id.topupSheet);
+        dimOverlay     = findViewById(R.id.topupDimOverlay);
+        tvSheetSaldo   = findViewById(R.id.tvSheetSaldo);
+        etCustomAmount = findViewById(R.id.etTopupCustom);
+
+        dimOverlay.setOnClickListener(v -> hideTopupSheet());
+        findViewById(R.id.btnTopupClose).setOnClickListener(v -> hideTopupSheet());
+
+        int[] presets = {10000, 25000, 50000, 100000, 200000, 500000};
+        int[] btnIds  = {R.id.btnTopup10, R.id.btnTopup25, R.id.btnTopup50,
+                         R.id.btnTopup100, R.id.btnTopup200, R.id.btnTopup500};
+        for (int i = 0; i < btnIds.length; i++) {
+            final int amount = presets[i];
+            findViewById(btnIds[i]).setOnClickListener(v -> doTopup(amount));
+        }
+        findViewById(R.id.btnTopupCustomConfirm).setOnClickListener(v -> {
+            String val = etCustomAmount.getText().toString().trim();
+            if (val.isEmpty()) { Toast.makeText(this, "Masukkan nominal", Toast.LENGTH_SHORT).show(); return; }
+            int amount = Integer.parseInt(val);
+            if (amount < 1000) { Toast.makeText(this, "Minimal top up Rp 1.000", Toast.LENGTH_SHORT).show(); return; }
+            doTopup(amount);
+        });
+    }
+
+    private void showTopupSheet() {
+        tvSheetSaldo.setText("Saldo saat ini: Rp " + fmt(db.getSaldo(userId)));
+        etCustomAmount.setText("");
+        dimOverlay.setVisibility(View.VISIBLE);
+        topupSheet.setVisibility(View.VISIBLE);
+        topupSheet.setTranslationY(topupSheet.getHeight() > 0 ? topupSheet.getHeight() : 1200f);
+        ObjectAnimator.ofFloat(topupSheet, "translationY", 0f).setDuration(300).start();
+    }
+
+    private void hideTopupSheet() {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(topupSheet, "translationY", 1200f);
+        anim.setDuration(250);
+        anim.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(android.animation.Animator a) {
+                topupSheet.setVisibility(View.GONE);
+                dimOverlay.setVisibility(View.GONE);
+            }
+        });
+        anim.start();
+    }
+
+    private void doTopup(int amount) {
+        db.updateSaldo(userId, db.getSaldo(userId) + amount);
+        updateSaldoUI();
+        Toast.makeText(this, "Top Up Rp " + fmt(amount) + " berhasil!", Toast.LENGTH_SHORT).show();
+        hideTopupSheet();
+    }
+
+    // ── Bottom nav ────────────────────────────────────────────────────
     private void setupBottomNav() {
         findViewById(R.id.layoutNavHome).setOnClickListener(v -> {});
         findViewById(R.id.layoutNavFavorit).setOnClickListener(v ->
@@ -176,4 +250,6 @@ public class HomeActivity extends Activity {
         findViewById(R.id.layoutNavProfile).setOnClickListener(v ->
                 Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
     }
+
+    private String fmt(int n) { return String.format("%,d", n).replace(',', '.'); }
 }

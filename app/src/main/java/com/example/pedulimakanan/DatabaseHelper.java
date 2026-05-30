@@ -12,28 +12,28 @@ import org.json.JSONObject;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME    = "db_pedulimakanan.db";
-    // UPDATE: Naikkan DB_VERSION ke 3 agar tabel baru otomatis terbuat saat aplikasi di-run
-    private static final int    DB_VERSION = 4;
+    private static final int    DB_VERSION = 6; // bumped: added tipe_menu column
 
-    // ── Table names ──────────────────────────────────────────────────
-    public static final String TABLE_USERS           = "users";
-    public static final String TABLE_RESTORAN        = "restoran";
-    public static final String TABLE_MENU            = "menu";
-    public static final String TABLE_TRANSAKSI       = "transaksi";
-    public static final String TABLE_DETAIL_TRANSAKSI= "detail_transaksi";
-    public static final String TABLE_FAVORIT         = "favorit";
-    public static final String TABLE_PENDING_USERS   = "pending_users";
-    // TAMBAHAN: Nama tabel keranjang belanja belanjaan umum
-    public static final String TABLE_KERANJANG       = "keranjang";
+    public static final String TABLE_USERS            = "users";
+    public static final String TABLE_RESTORAN         = "restoran";
+    public static final String TABLE_MENU             = "menu";
+    public static final String TABLE_TRANSAKSI        = "transaksi";
+    public static final String TABLE_DETAIL_TRANSAKSI = "detail_transaksi";
+    public static final String TABLE_FAVORIT          = "favorit";
+    public static final String TABLE_PENDING_USERS    = "pending_users";
+    public static final String TABLE_KERANJANG        = "keranjang";
+
+    // tipe_menu values
+    public static final String TIPE_MAKANAN  = "Makanan";
+    public static final String TIPE_MINUMAN  = "Minuman";
+    public static final String TIPE_SNACK    = "Snack";
 
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
     }
 
-    // ── onCreate: create all tables + seed sample data ────────────────
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // USERS
         db.execSQL("CREATE TABLE " + TABLE_USERS + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "nama TEXT NOT NULL," +
@@ -43,31 +43,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "kode_verifikasi TEXT," +
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
                 "alamat_default TEXT," +
-                "saldo INTEGER DEFAULT 0" + // TAMBAHAN KOLOM SALDO
-                ")");
+                "saldo INTEGER DEFAULT 0)");
 
-        // PENDING_USERS (holds registrations awaiting verification if needed)
         db.execSQL("CREATE TABLE " + TABLE_PENDING_USERS + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "nama TEXT," +
-                "email TEXT," +
-                "no_hp TEXT," +
-                "password TEXT," +
+                "nama TEXT, email TEXT, no_hp TEXT, password TEXT," +
                 "kode_verifikasi TEXT," +
-                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-                ")");
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-        // RESTORAN
+        // tipe_menu added: 'Makanan' | 'Minuman' | 'Snack'
         db.execSQL("CREATE TABLE " + TABLE_RESTORAN + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "nama_resto TEXT NOT NULL," +
                 "alamat_resto TEXT," +
                 "kategori TEXT," +
+                "tipe_menu TEXT DEFAULT 'Makanan'," +
                 "rating REAL DEFAULT 0," +
-                "gambar_url TEXT" +
-                ")");
+                "gambar_url TEXT)");
 
-        // MENU
         db.execSQL("CREATE TABLE " + TABLE_MENU + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "restoran_id INTEGER NOT NULL," +
@@ -76,10 +69,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "deskripsi TEXT," +
                 "gambar_url TEXT," +
                 "is_tersedia INTEGER DEFAULT 1," +
-                "FOREIGN KEY(restoran_id) REFERENCES restoran(id)" +
-                ")");
+                "FOREIGN KEY(restoran_id) REFERENCES restoran(id))");
 
-        // TRANSAKSI
         db.execSQL("CREATE TABLE " + TABLE_TRANSAKSI + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "user_id INTEGER NOT NULL," +
@@ -88,10 +79,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "status_pesanan TEXT DEFAULT 'Selesai'," +
                 "tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
                 "FOREIGN KEY(user_id) REFERENCES users(id)," +
-                "FOREIGN KEY(restoran_id) REFERENCES restoran(id)" +
-                ")");
+                "FOREIGN KEY(restoran_id) REFERENCES restoran(id))");
 
-        // DETAIL_TRANSAKSI
         db.execSQL("CREATE TABLE " + TABLE_DETAIL_TRANSAKSI + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "transaksi_id INTEGER NOT NULL," +
@@ -99,19 +88,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "jumlah INTEGER NOT NULL," +
                 "harga_saat_ini INTEGER NOT NULL," +
                 "FOREIGN KEY(transaksi_id) REFERENCES transaksi(id)," +
-                "FOREIGN KEY(menu_id) REFERENCES menu(id)" +
-                ")");
+                "FOREIGN KEY(menu_id) REFERENCES menu(id))");
 
-        // FAVORIT
         db.execSQL("CREATE TABLE " + TABLE_FAVORIT + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "user_id INTEGER NOT NULL," +
                 "restoran_id INTEGER NOT NULL," +
                 "FOREIGN KEY(user_id) REFERENCES users(id)," +
-                "FOREIGN KEY(restoran_id) REFERENCES restoran(id)" +
-                ")");
+                "FOREIGN KEY(restoran_id) REFERENCES restoran(id))");
 
-        // TAMBAHAN: Eksekusi SQL Pembuatan Tabel Keranjang Belanja Baru
         db.execSQL("CREATE TABLE " + TABLE_KERANJANG + " (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "user_id INTEGER NOT NULL," +
@@ -120,15 +105,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "jumlah INTEGER NOT NULL," +
                 "FOREIGN KEY(user_id) REFERENCES users(id)," +
                 "FOREIGN KEY(restoran_id) REFERENCES restoran(id)," +
-                "FOREIGN KEY(menu_id) REFERENCES menu(id)" +
-                ")");
+                "FOREIGN KEY(menu_id) REFERENCES menu(id))");
 
         seedData(db);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // TAMBAHAN: Drop table keranjang jika database di-upgrade
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_KERANJANG);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_DETAIL_TRANSAKSI);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRANSAKSI);
@@ -140,45 +123,64 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    // ── Seed sample restaurants & menus ──────────────────────────────
     private void seedData(SQLiteDatabase db) {
-        // ---- Restaurants (id assigned in order: 1, 2, 3, 4) ----
-        insertResto(db, "Saladstop",  "Jl. Sudirman No. 1",  "Salad",      4.8f, "saladstop");
-        insertResto(db, "Supergrain", "Jl. Thamrin No. 5",   "Grain Bowl", 4.3f, "supergrain");
-        insertResto(db, "GreenBowl",  "Jl. Kuningan No. 7",  "Bowls",      3.8f, "greenbowl");
-        insertResto(db, "FreshBox",   "Jl. Senayan No. 2",   "Healthy",    3.5f, "freshbox");
-        insertResto(db, "Burgreen",   "Jl. Kemang No. 10",   "Vegan",      4.5f, "burgreen");
+        // ── Makanan (full course meals) ──────────────────────────────
+        insertResto(db, "Saladstop",  "Jl. Sudirman No. 1", "Salad",      TIPE_MAKANAN, 4.8f, "saladstop");
+        insertResto(db, "Supergrain", "Jl. Thamrin No. 5",  "Grain Bowl", TIPE_MAKANAN, 4.3f, "supergrain");
+        insertResto(db, "Burgreen",   "Jl. Kemang No. 10",  "Vegan",      TIPE_MAKANAN, 4.5f, "burgreen");
+        insertResto(db, "GreenBowl",  "Jl. Kuningan No. 7", "Bowls",      TIPE_MAKANAN, 3.8f, "greenbowl");
 
-        // ---- Menu for Saladstop (id=1) ----
+        // ── Minuman (drinks) ─────────────────────────────────────────
+        insertResto(db, "SmoothieBar", "Jl. Sudirman No. 50", "Smoothie", TIPE_MINUMAN, 4.6f, "img_placeholder_food");
+
+        // ── Snack ────────────────────────────────────────────────────
+        insertResto(db, "FreshBox",   "Jl. Senayan No. 2",   "Healthy",   TIPE_SNACK, 3.5f, "freshbox");
+        insertResto(db, "NutriSnack", "Jl. Blok M No. 8",    "Snack",     TIPE_SNACK, 4.0f, "img_placeholder_food");
+
+        // ── Menus: Saladstop (id=1) ──────────────────────────────────
         insertMenu(db, 1, "Tuna San",    85000, "Salad tuna segar dengan alpukat, tomat, saus madu", "", 1);
         insertMenu(db, 1, "Hail Caesar", 80000, "Caesar klasik dengan ayam panggang dan parmesan",   "", 1);
         insertMenu(db, 1, "Mini Bowl",   68000, "Pilihan sayuran segar dengan protein pilihanmu",    "", 1);
         insertMenu(db, 1, "Protein Mix", 95000, "Campuran protein tinggi: telur, tuna, edamame",     "", 1);
 
-        // ---- Menu for Supergrain (id=2) ----
+        // ── Supergrain (id=2) ────────────────────────────────────────
         insertMenu(db, 2, "Brown Rice Bowl", 72000, "Nasi merah dengan sayuran dan saus kacang",          "", 1);
         insertMenu(db, 2, "Quinoa Power",    88000, "Quinoa dengan avocado, edamame, dan dressing lemon", "", 1);
         insertMenu(db, 2, "Grain Classic",   65000, "Mix biji-bijian dengan topping ayam dan sayuran",    "", 1);
 
-        // ---- Menu for GreenBowl (id=3) ----
-        insertMenu(db, 3, "Green Detox",  58000, "Campuran sayuran hijau dengan dressing jahe", "", 1);
-        insertMenu(db, 3, "Chicken Bowl", 62000, "Ayam panggang dengan brokoli dan wortel",     "", 1);
+        // ── Burgreen (id=3) ──────────────────────────────────────────
+        insertMenu(db, 3, "Vegan Burger",  75000, "Burger vegan dengan patty jamur dan saus tomat", "", 1);
+        insertMenu(db, 3, "Smoothie Bowl", 65000, "Acai smoothie bowl dengan granola dan buah",     "", 1);
 
-        // ---- Menu for FreshBox (id=4) ----
-        insertMenu(db, 4, "Wrap Veggie", 55000, "Wrap dengan sayuran segar dan hummus", "", 1);
-        insertMenu(db, 4, "Fruit Bowl",  48000, "Campuran buah segar musiman",          "", 1);
+        // ── GreenBowl (id=4) ─────────────────────────────────────────
+        insertMenu(db, 4, "Green Detox",  58000, "Campuran sayuran hijau dengan dressing jahe", "", 1);
+        insertMenu(db, 4, "Chicken Bowl", 62000, "Ayam panggang dengan brokoli dan wortel",     "", 1);
 
-        // ---- Menu for Burgreen (id=5) ----
-        insertMenu(db, 5, "Vegan Burger",  75000, "Burger vegan dengan patty jamur dan saus tomat", "", 1);
-        insertMenu(db, 5, "Smoothie Bowl", 65000, "Acai smoothie bowl dengan granola dan buah",     "", 1);
+        // ── SmoothieBar (id=5) ───────────────────────────────────────
+        insertMenu(db, 5, "Tropical Blast",   28000, "Mangga, nanas, dan jeruk dengan coconut water",       "", 1);
+        insertMenu(db, 5, "Green Power",      30000, "Bayam, apel hijau, jahe, dan lemon segar",            "", 1);
+        insertMenu(db, 5, "Berry Bliss",      32000, "Stroberi, blueberry, raspberry dengan susu almond",   "", 1);
+        insertMenu(db, 5, "Peanut Butter Boo",35000, "Pisang, selai kacang, oat, dan susu sapi",            "", 1);
+        insertMenu(db, 5, "Detox Cleanse",    27000, "Timun, seledri, lemon, dan madu murni",               "", 1);
+
+        // ── FreshBox (id=6) ──────────────────────────────────────────
+        insertMenu(db, 6, "Wrap Veggie", 55000, "Wrap dengan sayuran segar dan hummus", "", 1);
+        insertMenu(db, 6, "Fruit Bowl",  48000, "Campuran buah segar musiman",          "", 1);
+
+        // ── NutriSnack (id=7) ────────────────────────────────────────
+        insertMenu(db, 7, "Granola Bar",    18000, "Granola oat dengan madu dan kacang",          "", 1);
+        insertMenu(db, 7, "Edamame Cup",    15000, "Edamame rebus dengan taburan garam himalaya", "", 1);
+        insertMenu(db, 7, "Mixed Nuts",     22000, "Campuran kacang panggang tanpa garam",        "", 1);
+        insertMenu(db, 7, "Rice Cake",      12000, "Kue beras renyah rasa original",              "", 1);
     }
 
     private void insertResto(SQLiteDatabase db, String nama, String alamat,
-                             String kategori, float rating, String gambar) {
+                             String kategori, String tipeMenu, float rating, String gambar) {
         ContentValues cv = new ContentValues();
         cv.put("nama_resto",   nama);
         cv.put("alamat_resto", alamat);
         cv.put("kategori",     kategori);
+        cv.put("tipe_menu",    tipeMenu);
         cv.put("rating",       rating);
         cv.put("gambar_url",   gambar);
         db.insert(TABLE_RESTORAN, null, cv);
@@ -187,164 +189,115 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private void insertMenu(SQLiteDatabase db, int restoranId, String nama,
                             int harga, String deskripsi, String gambar, int tersedia) {
         ContentValues cv = new ContentValues();
-        cv.put("restoran_id",  restoranId);
-        cv.put("nama_item",    nama);
-        cv.put("harga",        harga);
-        cv.put("deskripsi",    deskripsi);
-        cv.put("gambar_url",   gambar);
-        cv.put("is_tersedia",  tersedia);
+        cv.put("restoran_id", restoranId);
+        cv.put("nama_item",   nama);
+        cv.put("harga",       harga);
+        cv.put("deskripsi",   deskripsi);
+        cv.put("gambar_url",  gambar);
+        cv.put("is_tersedia", tersedia);
         db.insert(TABLE_MENU, null, cv);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  AUTH
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ AUTH ════════════════════════════════════════
 
-    /** Returns user id on success, -1 if wrong credentials */
     public int login(String nama, String password) {
         SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.rawQuery(
-                "SELECT id FROM " + TABLE_USERS +
-                        " WHERE nama=? AND password=?",
-                new String[]{nama, password});
+        Cursor c = db.rawQuery("SELECT id FROM " + TABLE_USERS +
+                " WHERE nama=? AND password=?", new String[]{nama, password});
         int userId = -1;
         if (c.moveToFirst()) userId = c.getInt(0);
         c.close();
         return userId;
     }
 
-    /** Returns true if registration succeeded */
     public boolean register(String nama, String email, String noHp, String alamat, String password) {
-        // Check duplicate email
         SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.rawQuery(
-                "SELECT id FROM " + TABLE_USERS + " WHERE email=?",
-                new String[]{email});
+        Cursor c = db.rawQuery("SELECT id FROM " + TABLE_USERS + " WHERE email=?", new String[]{email});
         boolean exists = c.moveToFirst();
         c.close();
         if (exists) return false;
-
         ContentValues cv = new ContentValues();
-        cv.put("nama",           nama);
-        cv.put("email",          email);
-        cv.put("no_hp",          noHp);
-        cv.put("alamat_default", alamat);
-        cv.put("password",       password);
-
-        long row = getWritableDatabase().insert(TABLE_USERS, null, cv);
-        return row != -1;
+        cv.put("nama", nama); cv.put("email", email); cv.put("no_hp", noHp);
+        cv.put("alamat_default", alamat); cv.put("password", password);
+        return getWritableDatabase().insert(TABLE_USERS, null, cv) != -1;
     }
 
-    /** Returns the new password-reset code, or null if user not found */
     public String requestResetCode(String identifier, String method) {
-        SQLiteDatabase db  = getReadableDatabase();
-        String column      = method.equals("email") ? "email" : "no_hp";
-        Cursor c = db.rawQuery(
-                "SELECT id FROM " + TABLE_USERS + " WHERE " + column + "=?",
+        SQLiteDatabase db = getReadableDatabase();
+        String column = method.equals("email") ? "email" : "no_hp";
+        Cursor c = db.rawQuery("SELECT id FROM " + TABLE_USERS + " WHERE " + column + "=?",
                 new String[]{identifier});
         if (!c.moveToFirst()) { c.close(); return null; }
-        int userId = c.getInt(0);
-        c.close();
-
+        int userId = c.getInt(0); c.close();
         String code = String.valueOf((int)(Math.random() * 900000) + 100000);
-        ContentValues cv = new ContentValues();
-        cv.put("kode_verifikasi", code);
-        getWritableDatabase().update(TABLE_USERS, cv, "id=?",
-                new String[]{String.valueOf(userId)});
+        ContentValues cv = new ContentValues(); cv.put("kode_verifikasi", code);
+        getWritableDatabase().update(TABLE_USERS, cv, "id=?", new String[]{String.valueOf(userId)});
         return code;
     }
 
-    /** Returns true if reset succeeded */
-    public boolean resetPassword(String identifier, String method,
-                                 String kode, String passwordBaru) {
+    public boolean resetPassword(String identifier, String method, String kode, String passwordBaru) {
         SQLiteDatabase db = getReadableDatabase();
-        String column     = method.equals("email") ? "email" : "no_hp";
-        Cursor c = db.rawQuery(
-                "SELECT id, kode_verifikasi FROM " + TABLE_USERS +
-                        " WHERE " + column + "=?",
-                new String[]{identifier});
+        String column = method.equals("email") ? "email" : "no_hp";
+        Cursor c = db.rawQuery("SELECT id, kode_verifikasi FROM " + TABLE_USERS +
+                " WHERE " + column + "=?", new String[]{identifier});
         if (!c.moveToFirst()) { c.close(); return false; }
-        int    userId       = c.getInt(0);
-        String storedCode   = c.getString(1);
-        c.close();
-
+        int userId = c.getInt(0); String storedCode = c.getString(1); c.close();
         if (!kode.equals(storedCode)) return false;
-
         ContentValues cv = new ContentValues();
-        cv.put("password",         passwordBaru);
-        cv.put("kode_verifikasi",  "");
-        getWritableDatabase().update(TABLE_USERS, cv, "id=?",
-                new String[]{String.valueOf(userId)});
+        cv.put("password", passwordBaru); cv.put("kode_verifikasi", "");
+        getWritableDatabase().update(TABLE_USERS, cv, "id=?", new String[]{String.valueOf(userId)});
         return true;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  RESTORAN
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ RESTORAN ════════════════════════════════════
 
     public Cursor getAllRestoran() {
         return getReadableDatabase().rawQuery(
                 "SELECT * FROM " + TABLE_RESTORAN + " ORDER BY rating DESC", null);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MENU
-    // ════════════════════════════════════════════════════════════════
+    /** Filter by tipe_menu. Pass null or empty to get all. */
+    public Cursor getRestoranByTipe(String tipeMenu) {
+        if (tipeMenu == null || tipeMenu.isEmpty()) return getAllRestoran();
+        return getReadableDatabase().rawQuery(
+                "SELECT * FROM " + TABLE_RESTORAN + " WHERE tipe_menu=? ORDER BY rating DESC",
+                new String[]{tipeMenu});
+    }
+
+    // ════════════════════ MENU ════════════════════════════════════════
 
     public Cursor getMenuByRestoran(int restoranId) {
         return getReadableDatabase().rawQuery(
-                "SELECT * FROM " + TABLE_MENU +
-                        " WHERE restoran_id=? AND is_tersedia=1",
+                "SELECT * FROM " + TABLE_MENU + " WHERE restoran_id=? AND is_tersedia=1",
                 new String[]{String.valueOf(restoranId)});
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  TRANSAKSI
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ TRANSAKSI ═══════════════════════════════════
 
-    /**
-     * Creates a full order from a cart.
-     * @param userId      logged-in user
-     * @param restoranId  store being ordered from
-     * @param cartItems   JSONArray of {menu_id, nama_item, harga, jumlah}
-     * @param totalHarga  pre-calculated total
-     * @return new transaksi id, or -1 on failure
-     */
-    public long buatTransaksi(int userId, int restoranId,
-                              JSONArray cartItems, int totalHarga) {
+    public long buatTransaksi(int userId, int restoranId, JSONArray cartItems, int totalHarga) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         try {
-            // Insert header
             ContentValues cv = new ContentValues();
-            cv.put("user_id",       userId);
-            cv.put("restoran_id",   restoranId);
-            cv.put("total_harga",   totalHarga);
-            cv.put("status_pesanan","Selesai");
+            cv.put("user_id", userId); cv.put("restoran_id", restoranId);
+            cv.put("total_harga", totalHarga); cv.put("status_pesanan", "Selesai");
             long transaksiId = db.insert(TABLE_TRANSAKSI, null, cv);
             if (transaksiId == -1) return -1;
-
-            // Insert detail rows
             for (int i = 0; i < cartItems.length(); i++) {
                 JSONObject item = cartItems.getJSONObject(i);
                 ContentValues dcv = new ContentValues();
-                dcv.put("transaksi_id",   transaksiId);
-                dcv.put("menu_id",        item.getInt("menu_id"));
-                dcv.put("jumlah",         item.getInt("jumlah"));
+                dcv.put("transaksi_id", transaksiId);
+                dcv.put("menu_id",      item.getInt("menu_id"));
+                dcv.put("jumlah",       item.getInt("jumlah"));
                 dcv.put("harga_saat_ini", item.getInt("harga"));
                 db.insert(TABLE_DETAIL_TRANSAKSI, null, dcv);
             }
-
             db.setTransactionSuccessful();
             return transaksiId;
-        } catch (Exception e) {
-            return -1;
-        } finally {
-            db.endTransaction();
-        }
+        } catch (Exception e) { return -1; }
+        finally { db.endTransaction(); }
     }
 
-    /** Returns all transactions for a user, newest first */
     public Cursor getTransaksiByUser(int userId) {
         return getReadableDatabase().rawQuery(
                 "SELECT t.*, r.nama_resto FROM " + TABLE_TRANSAKSI + " t " +
@@ -353,7 +306,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(userId)});
     }
 
-    /** Returns detail rows for one transaction */
     public Cursor getDetailTransaksi(int transaksiId) {
         return getReadableDatabase().rawQuery(
                 "SELECT dt.*, m.nama_item FROM " + TABLE_DETAIL_TRANSAKSI + " dt " +
@@ -362,29 +314,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(transaksiId)});
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  FAVORIT
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ FAVORIT ═════════════════════════════════════
 
     public boolean isFavorit(int userId, int restoranId) {
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT id FROM " + TABLE_FAVORIT +
-                        " WHERE user_id=? AND restoran_id=?",
+                "SELECT id FROM " + TABLE_FAVORIT + " WHERE user_id=? AND restoran_id=?",
                 new String[]{String.valueOf(userId), String.valueOf(restoranId)});
-        boolean result = c.moveToFirst();
-        c.close();
-        return result;
+        boolean result = c.moveToFirst(); c.close(); return result;
     }
 
     public void toggleFavorit(int userId, int restoranId) {
         if (isFavorit(userId, restoranId)) {
-            getWritableDatabase().delete(TABLE_FAVORIT,
-                    "user_id=? AND restoran_id=?",
+            getWritableDatabase().delete(TABLE_FAVORIT, "user_id=? AND restoran_id=?",
                     new String[]{String.valueOf(userId), String.valueOf(restoranId)});
         } else {
             ContentValues cv = new ContentValues();
-            cv.put("user_id",    userId);
-            cv.put("restoran_id", restoranId);
+            cv.put("user_id", userId); cv.put("restoran_id", restoranId);
             getWritableDatabase().insert(TABLE_FAVORIT, null, cv);
         }
     }
@@ -392,103 +337,65 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public Cursor getFavoritByUser(int userId) {
         return getReadableDatabase().rawQuery(
                 "SELECT r.* FROM " + TABLE_RESTORAN + " r " +
-                        "JOIN " + TABLE_FAVORIT + " f ON r.id = f.restoran_id " +
-                        "WHERE f.user_id=?",
+                        "JOIN " + TABLE_FAVORIT + " f ON r.id = f.restoran_id WHERE f.user_id=?",
                 new String[]{String.valueOf(userId)});
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  TAMBAHAN LOGIKA BARU: LOGIKA DATABASE KERANJANG BELANJA (CART)
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ KERANJANG ═══════════════════════════════════
 
-    /**
-     * Menyimpan menu ke dalam database keranjang belanja umum.
-     * Jika menu dari restoran tersebut sudah ada di keranjang untuk user ini, update jumlahnya.
-     * Jika belum ada, lakukan insert baris baru.
-     */
     public boolean tambahKeKeranjang(int userId, int restoranId, int menuId, int jumlah) {
         SQLiteDatabase db = getWritableDatabase();
-
-        // Cek apakah item menu ini sudah pernah dimasukkan ke keranjang oleh user yang sama
         Cursor c = db.rawQuery(
                 "SELECT id, jumlah FROM " + TABLE_KERANJANG +
                         " WHERE user_id=? AND restoran_id=? AND menu_id=?",
                 new String[]{String.valueOf(userId), String.valueOf(restoranId), String.valueOf(menuId)});
-
-        boolean success;
         ContentValues cv = new ContentValues();
-
+        boolean success;
         if (c.moveToFirst()) {
-            // Jika item sudah ada di keranjang, akumulasikan jumlah lamanya dengan kuantitas baru
-            int idLama = c.getInt(0);
-            int jumlahLama = c.getInt(1);
+            int idLama = c.getInt(0); int jumlahLama = c.getInt(1);
             cv.put("jumlah", jumlahLama + jumlah);
-
-            int rows = db.update(TABLE_KERANJANG, cv, "id=?", new String[]{String.valueOf(idLama)});
-            success = rows > 0;
+            success = db.update(TABLE_KERANJANG, cv, "id=?", new String[]{String.valueOf(idLama)}) > 0;
         } else {
-            // Jika item belum ada, buat record/data keranjang baru
-            cv.put("user_id", userId);
-            cv.put("restoran_id", restoranId);
-            cv.put("menu_id", menuId);
-            cv.put("jumlah", jumlah);
-
-            long rowId = db.insert(TABLE_KERANJANG, null, cv);
-            success = rowId != -1;
+            cv.put("user_id", userId); cv.put("restoran_id", restoranId);
+            cv.put("menu_id", menuId); cv.put("jumlah", jumlah);
+            success = db.insert(TABLE_KERANJANG, null, cv) != -1;
         }
-        c.close();
-        return success;
+        c.close(); return success;
     }
 
-    /** Mengambil semua item list belanja di dalam tabel keranjang milik user tertentu */
     public Cursor getKeranjangByUser(int userId) {
         return getReadableDatabase().rawQuery(
                 "SELECT k.id, k.restoran_id, k.menu_id, k.jumlah, " +
-                        "m.nama_item AS nama_item, " + // Dikasih alias tegas
-                        "m.harga AS harga, " +         // Dikasih alias tegas
-                        "r.nama_resto AS nama_resto " +
+                        "m.nama_item AS nama_item, m.harga AS harga, r.nama_resto AS nama_resto " +
                         "FROM " + TABLE_KERANJANG + " k " +
                         "JOIN " + TABLE_MENU + " m ON k.menu_id = m.id " +
                         "JOIN " + TABLE_RESTORAN + " r ON k.restoran_id = r.id " +
-                        "WHERE k.user_id = ?",
-                new String[]{String.valueOf(userId)});
+                        "WHERE k.user_id = ?", new String[]{String.valueOf(userId)});
     }
 
-    /** Menghapus satu item spesifik dari daftar keranjang belanja */
     public void hapusItemKeranjang(int keranjangId) {
         getWritableDatabase().delete(TABLE_KERANJANG, "id=?", new String[]{String.valueOf(keranjangId)});
     }
 
-    /** Mengosongkan seluruh isi keranjang belanja user setelah proses checkout sukses */
     public void bersihkanKeranjang(int userId) {
         getWritableDatabase().delete(TABLE_KERANJANG, "user_id=?", new String[]{String.valueOf(userId)});
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  TAMBAHAN: LOGIKA SALDO USER
-    // ════════════════════════════════════════════════════════════════
+    // ════════════════════ SALDO ═══════════════════════════════════════
 
     public int getSaldo(int userId) {
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.rawQuery("SELECT saldo FROM " + TABLE_USERS + " WHERE id=?", new String[]{String.valueOf(userId)});
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT saldo FROM " + TABLE_USERS + " WHERE id=?", new String[]{String.valueOf(userId)});
         int saldo = 0;
-        if (c.moveToFirst()) {
-            saldo = c.getInt(0);
-        }
-        c.close();
-        return saldo;
+        if (c.moveToFirst()) saldo = c.getInt(0);
+        c.close(); return saldo;
     }
 
     public boolean updateSaldo(int userId, int jumlahBaru) {
-        SQLiteDatabase db = getWritableDatabase();
-        ContentValues cv = new ContentValues();
-        cv.put("saldo", jumlahBaru);
-        int rows = db.update(TABLE_USERS, cv, "id=?", new String[]{String.valueOf(userId)});
-        return rows > 0;
+        ContentValues cv = new ContentValues(); cv.put("saldo", jumlahBaru);
+        return getWritableDatabase().update(TABLE_USERS, cv, "id=?",
+                new String[]{String.valueOf(userId)}) > 0;
     }
 }
-
-
-
-
-
+// Note: add tipeMenu field to RestoranModel.java:
+// public String tipeMenu = "";

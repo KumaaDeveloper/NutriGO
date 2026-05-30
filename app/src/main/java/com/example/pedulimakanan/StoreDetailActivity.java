@@ -251,6 +251,15 @@ public class StoreDetailActivity extends Activity {
             case "fruit bowl":      return R.drawable.img_fruit_bowl;
             case "vegan burger":    return R.drawable.img_vegan_burger;
             case "smoothie bowl":   return R.drawable.img_smoothie_bowl;
+            case "tropical blast":  return R.drawable.img_tropical_blast;
+            case "green power":     return R.drawable.img_green_power;
+            case "berry bliss":     return R.drawable.img_berry_bliss;
+            case "peanut butter boo": return R.drawable.img_peanut_butter_boo;
+            case "detox cleanse":   return R.drawable.img_detox_clease;
+            case "granola bar":     return R.drawable.img_granola_bar;
+            case "edamame cup":     return R.drawable.img_edamame_cup;
+            case "mixed nuts":      return R.drawable.img_mixed_nuts;
+            case "rice cake":       return R.drawable.img_rice_cake;
             default:                return R.drawable.img_placeholder_food;
         }
     }
