@@ -3,18 +3,29 @@ package com.example.pedulimakanan;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
 
-import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.*;
+
 public class StoreDetailActivity extends Activity {
 
+    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String PREF_NAME = "login_session";
     private static final int BIAYA_ONGKIR = 6000;
 
     private static final Map<String, Integer> PROMO_MAP = new HashMap<>();
@@ -24,7 +35,6 @@ public class StoreDetailActivity extends Activity {
         PROMO_MAP.put("MURAH5",   5000);
     }
 
-    private DatabaseHelper db;
     private int restoranId;
     private String restoranNama;
     private int userId;
@@ -42,12 +52,11 @@ public class StoreDetailActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_store_detail);
 
-        db = new DatabaseHelper(this);
         restoranId   = getIntent().getIntExtra("restoran_id", -1);
         restoranNama = getIntent().getStringExtra("restoran_nama");
 
-        // PERBAIKAN: Mengembalikan key ke "user_id" agar terbaca dari session LoginActivity kamu
-        SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
+        // Menggunakan session login terpusat dari main branch
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         userId = prefs.getInt("user_id", -1);
 
         TextView tvTitle = findViewById(R.id.tvStoreTitle);
@@ -66,69 +75,13 @@ public class StoreDetailActivity extends Activity {
 
         findViewById(R.id.btnAddPromo).setOnClickListener(v -> applyPromo());
 
-        // Inisialisasi aksi tombol
+        // Inisialisasi tombol pembayaran dan keranjang belanja
         findViewById(R.id.btnBayarLangsung).setOnClickListener(v -> placeOrderDirectly());
         findViewById(R.id.btnTambahKeranjang).setOnClickListener(v -> addToCartDatabase());
 
-        loadMenu();
+        // Pemuatan data menu dari API server remote
+        new LoadMenuTask().execute();
         updateSummary();
-    }
-
-    private void loadMenu() {
-        llMenuContainer.removeAllViews();
-        Cursor c = db.getMenuByRestoran(restoranId);
-        while (c.moveToNext()) {
-            int    menuId = c.getInt(c.getColumnIndexOrThrow("id"));
-            String nama   = c.getString(c.getColumnIndexOrThrow("nama_item"));
-            int    harga  = c.getInt(c.getColumnIndexOrThrow("harga"));
-            String desc   = c.getString(c.getColumnIndexOrThrow("deskripsi"));
-
-            View row = LayoutInflater.from(this)
-                    .inflate(R.layout.item_menu_row, llMenuContainer, false);
-
-            TextView    tvNama   = row.findViewById(R.id.tvMenuNama);
-            TextView    tvHarga  = row.findViewById(R.id.tvMenuHarga);
-            TextView    tvDesc   = row.findViewById(R.id.tvMenuDesc);
-            ImageView   imgMenu  = row.findViewById(R.id.imgMenu);
-            TextView    tvQty    = row.findViewById(R.id.tvQty);
-            ImageButton btnPlus  = row.findViewById(R.id.btnPlus);
-            ImageButton btnMinus = row.findViewById(R.id.btnMinus);
-
-            tvNama.setText(nama);
-            tvHarga.setText("Rp " + formatRupiah(harga));
-            tvDesc.setText(desc);
-
-            imgMenu.setImageResource(getMenuImage(nama));
-
-            int currentQty = cart.containsKey(menuId) ? cart.get(menuId).jumlah : 0;
-            tvQty.setText(String.valueOf(currentQty));
-
-            btnPlus.setOnClickListener(v -> {
-                CartItem item = cart.containsKey(menuId)
-                        ? cart.get(menuId)
-                        : new CartItem(menuId, nama, harga, 0);
-                item.jumlah++;
-                cart.put(menuId, item);
-                tvQty.setText(String.valueOf(item.jumlah));
-                updateSummary();
-            });
-
-            btnMinus.setOnClickListener(v -> {
-                if (!cart.containsKey(menuId)) return;
-                CartItem item = cart.get(menuId);
-                item.jumlah--;
-                if (item.jumlah <= 0) {
-                    cart.remove(menuId);
-                    tvQty.setText("0");
-                } else {
-                    tvQty.setText(String.valueOf(item.jumlah));
-                }
-                updateSummary();
-            });
-
-            llMenuContainer.addView(row);
-        }
-        c.close();
     }
 
     private void updateSummary() {
@@ -181,29 +134,9 @@ public class StoreDetailActivity extends Activity {
             }
             int total = Math.max(0, subtotal + BIAYA_ONGKIR - appliedDiscount);
 
-            // --- [UPDATE SALDO]: Tambahan Validasi Saldo ---
-            int saldoUser = db.getSaldo(userId);
-            if (saldoUser < total) {
-                Toast.makeText(this, "Saldo tidak cukup! Sisa saldo: Rp. " + formatRupiah(saldoUser), Toast.LENGTH_LONG).show();
-                return; // Stop proses jika saldo kurang
-            }
+            // Eksekusi checkout pembayaran langsung ke server API remote
+            new DirectOrderTask().execute(cartArray.toString(), String.valueOf(total));
 
-            // Jika saldo cukup, potong saldo dan buat transaksi
-            db.updateSaldo(userId, saldoUser - total);
-            // -----------------------------------------------
-
-            long transaksiId = db.buatTransaksi(userId, restoranId, cartArray, total);
-            if (transaksiId != -1) {
-                Toast.makeText(this, "Pembayaran Berhasil! Saldo dipotong.", Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(this, TransactionActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-                finish();
-            } else {
-                // Refund jika terjadi kesalahan saat insert transaksi ke DB
-                db.updateSaldo(userId, saldoUser);
-                Toast.makeText(this, "Gagal memproses transaksi", Toast.LENGTH_SHORT).show();
-            }
         } catch (Exception e) {
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
@@ -219,19 +152,20 @@ public class StoreDetailActivity extends Activity {
             return;
         }
 
-        boolean allSaved = true;
-        for (CartItem item : cart.values()) {
-            boolean success = db.tambahKeKeranjang(userId, restoranId, item.menuId, item.jumlah);
-            if (!success) {
-                allSaved = false;
+        try {
+            JSONArray cartArray = new JSONArray();
+            for (CartItem item : cart.values()) {
+                JSONObject obj = new JSONObject();
+                obj.put("menu_id", item.menuId);
+                obj.put("jumlah", item.jumlah);
+                cartArray.put(obj);
             }
-        }
 
-        if (allSaved) {
-            Toast.makeText(this, "Berhasil ditambahkan ke keranjang belanja!", Toast.LENGTH_SHORT).show();
-            finish();
-        } else {
-            Toast.makeText(this, "Beberapa menu gagal dimasukkan ke keranjang", Toast.LENGTH_SHORT).show();
+            // Kirim kumpulan data menu sekaligus ke API keranjang server
+            new AddToCartTask().execute(cartArray.toString());
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -274,6 +208,228 @@ public class StoreDetailActivity extends Activity {
         CartItem(int menuId, String nama, int harga, int jumlah) {
             this.menuId = menuId; this.nama = nama;
             this.harga  = harga;  this.jumlah = jumlah;
+        }
+    }
+
+    // ── ASYNCTASK 1: Mengambil Data Daftar Menu dari Server API ──
+    private class LoadMenuTask extends AsyncTask<Void, Void, String> {
+        @Override
+        protected String doInBackground(Void... voids) {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL(CONNECTOR_URL);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("get_menu_by_restoran", "UTF-8") + "&" +
+                        URLEncoder.encode("restoran_id", "UTF-8") + "=" + URLEncoder.encode(String.valueOf(restoranId), "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+                return result.toString();
+            } catch (Exception e) {
+                return null;
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String response) {
+            if (response == null) return;
+            try {
+                JSONObject jsonObject = new JSONObject(response);
+                if (jsonObject.optBoolean("success", false)) {
+                    llMenuContainer.removeAllViews();
+                    JSONArray menuArray = jsonObject.getJSONArray("menu");
+
+                    for (int i = 0; i < menuArray.length(); i++) {
+                        JSONObject obj = menuArray.getJSONObject(i);
+                        int menuId = obj.getInt("id");
+                        String nama = obj.getString("nama_item");
+                        int harga = obj.getInt("harga");
+                        String desc = obj.optString("deskripsi", "");
+
+                        View row = LayoutInflater.from(StoreDetailActivity.this)
+                                .inflate(R.layout.item_menu_row, llMenuContainer, false);
+
+                        TextView tvNama = row.findViewById(R.id.tvMenuNama);
+                        TextView tvHarga = row.findViewById(R.id.tvMenuHarga);
+                        TextView tvDesc = row.findViewById(R.id.tvMenuDesc);
+                        ImageView imgMenu = row.findViewById(R.id.imgMenu);
+                        TextView tvQty = row.findViewById(R.id.tvQty);
+                        ImageButton btnPlus = row.findViewById(R.id.btnPlus);
+                        ImageButton btnMinus = row.findViewById(R.id.btnMinus);
+
+                        tvNama.setText(nama);
+                        tvHarga.setText("Rp " + formatRupiah(harga));
+                        tvDesc.setText(desc);
+                        imgMenu.setImageResource(getMenuImage(nama));
+
+                        int currentQty = cart.containsKey(menuId) ? cart.get(menuId).jumlah : 0;
+                        tvQty.setText(String.valueOf(currentQty));
+
+                        btnPlus.setOnClickListener(v -> {
+                            CartItem item = cart.containsKey(menuId)
+                                    ? cart.get(menuId)
+                                    : new CartItem(menuId, nama, harga, 0);
+                            item.jumlah++;
+                            cart.put(menuId, item);
+                            tvQty.setText(String.valueOf(item.jumlah));
+                            updateSummary();
+                        });
+
+                        btnMinus.setOnClickListener(v -> {
+                            if (!cart.containsKey(menuId)) return;
+                            CartItem item = cart.get(menuId);
+                            item.jumlah--;
+                            if (item.jumlah <= 0) {
+                                cart.remove(menuId);
+                                tvQty.setText("0");
+                            } else {
+                                tvQty.setText(String.valueOf(item.jumlah));
+                            }
+                            updateSummary();
+                        });
+
+                        llMenuContainer.addView(row);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
+    // ── ASYNCTASK 2: Kirim Transaksi Bayar Langsung ke Server (Potong Saldo MySQL) ──
+    private class DirectOrderTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            String cartItemsJson = params[0];
+            String totalHarga = params[1];
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL(CONNECTOR_URL);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("buat_transaksi_server", "UTF-8") + "&" +
+                        URLEncoder.encode("user_id", "UTF-8") + "=" + URLEncoder.encode(String.valueOf(userId), "UTF-8") + "&" +
+                        URLEncoder.encode("restoran_id", "UTF-8") + "=" + URLEncoder.encode(String.valueOf(restoranId), "UTF-8") + "&" +
+                        URLEncoder.encode("total_harga", "UTF-8") + "=" + URLEncoder.encode(totalHarga, "UTF-8") + "&" +
+                        URLEncoder.encode("items", "UTF-8") + "=" + URLEncoder.encode(cartItemsJson, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+                return result.toString();
+            } catch (Exception e) {
+                return null;
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String response) {
+            if (response == null) {
+                Toast.makeText(StoreDetailActivity.this, "Koneksi server gagal", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                JSONObject jsonObject = new JSONObject(response);
+                if (jsonObject.optBoolean("success", false)) {
+                    Toast.makeText(StoreDetailActivity.this, "Pembayaran Berhasil! Saldo terpotong.", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(StoreDetailActivity.this, TransactionActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    // Berteriak jika saldo di server tidak cukup atau ada error database
+                    Toast.makeText(StoreDetailActivity.this, jsonObject.optString("message", "Gagal memproses pesanan"), Toast.LENGTH_LONG).show();
+                }
+            } catch (Exception e) {
+                Toast.makeText(StoreDetailActivity.this, "Response tidak valid", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // ── ASYNCTASK 3: Memasukkan Data Belanjaan ke Keranjang Server ──
+    private class AddToCartTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... params) {
+            String itemsJson = params[0];
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL(CONNECTOR_URL);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("tambah_ke_keranjang_server", "UTF-8") + "&" +
+                        URLEncoder.encode("user_id", "UTF-8") + "=" + URLEncoder.encode(String.valueOf(userId), "UTF-8") + "&" +
+                        URLEncoder.encode("restoran_id", "UTF-8") + "=" + URLEncoder.encode(String.valueOf(restoranId), "UTF-8") + "&" +
+                        URLEncoder.encode("items", "UTF-8") + "=" + URLEncoder.encode(itemsJson, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+                return result.toString();
+            } catch (Exception e) {
+                return null;
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String response) {
+            if (response == null) {
+                Toast.makeText(StoreDetailActivity.this, "Gagal terhubung ke keranjang belanja", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                JSONObject jsonObject = new JSONObject(response);
+                if (jsonObject.optBoolean("success", false)) {
+                    Toast.makeText(StoreDetailActivity.this, "Berhasil ditambahkan ke keranjang belanja!", Toast.LENGTH_SHORT).show();
+                    finish();
+                } else {
+                    Toast.makeText(StoreDetailActivity.this, "Gagal memasukkan menu ke keranjang", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                Toast.makeText(StoreDetailActivity.this, "Error parsing data keranjang", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
