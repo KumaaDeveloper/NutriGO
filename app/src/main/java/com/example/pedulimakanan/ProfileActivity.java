@@ -5,21 +5,24 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.yalantis.ucrop.UCrop;
 
@@ -38,12 +41,14 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
+@SuppressWarnings("deprecation")
 public class ProfileActivity extends Activity {
 
     private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
 
     private static final int PICK_IMAGE_REQUEST = 100;
     private static final int UCROP_REQUEST_CODE = UCrop.REQUEST_CROP;
+    private static final long MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024;
 
     private ShapeableImageView imgProfile;
     private TextView tvProfileName;
@@ -61,12 +66,17 @@ public class ProfileActivity extends Activity {
     private ImageButton navOrder;
     private ImageButton navProfile;
 
+    private AlertDialog loadingDialog;
+
     private int userId = -1;
 
     private String currentEmail = "";
     private String currentPhone = "";
     private String currentProfileName = "";
     private String currentUsername = "";
+    private String currentProfilePicture = "";
+
+    private boolean firstLoadDone = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,7 +104,7 @@ public class ProfileActivity extends Activity {
         setActiveNav();
 
         if (userId == -1) {
-            showDialogMessage("Error", "User tidak ditemukan");
+            showDialogMessage("Error", "User tidak ditemukan. Pastikan LoginActivity mengirim user_id ke HomeActivity dan ProfileActivity.");
             return;
         }
 
@@ -116,20 +126,10 @@ public class ProfileActivity extends Activity {
             finish();
         });
 
-        navFavorite.setOnClickListener(v ->
-                showDialogMessage("Info", "Halaman favorit belum dibuat")
-        );
-
-        navCart.setOnClickListener(v ->
-                showDialogMessage("Info", "Halaman keranjang belum dibuat")
-        );
-
-        navOrder.setOnClickListener(v ->
-                showDialogMessage("Info", "Halaman pesanan belum dibuat")
-        );
-
+        navFavorite.setOnClickListener(v -> showDialogMessage("Info", "Halaman favorit belum dibuat"));
+        navCart.setOnClickListener(v -> showDialogMessage("Info", "Halaman keranjang belum dibuat"));
+        navOrder.setOnClickListener(v -> showDialogMessage("Info", "Halaman pesanan belum dibuat"));
         navProfile.setOnClickListener(v -> {
-            // Sudah berada di halaman Profile
         });
     }
 
@@ -155,13 +155,11 @@ public class ProfileActivity extends Activity {
                 .setNegativeButton("Batal", (dialog, which) -> dialog.dismiss())
                 .setPositiveButton("Reset", (dialog, which) -> {
                     dialog.dismiss();
-                    imgProfile.setImageResource(R.drawable.ic_profile_big);
                     new ProfileTask("reset_profile_picture").execute();
                 })
                 .show();
     }
 
-    @SuppressWarnings("deprecation")
     private void openImagePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("image/*");
@@ -228,7 +226,6 @@ public class ProfileActivity extends Activity {
                 .start(ProfileActivity.this);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -249,19 +246,39 @@ public class ProfileActivity extends Activity {
             if (mimeType == null ||
                     (!mimeType.equals("image/png") &&
                             !mimeType.equals("image/jpg") &&
-                            !mimeType.equals("image/jpeg"))) {
+                            !mimeType.equals("image/jpeg") &&
+                            !mimeType.equals("image/gif"))) {
 
-                showDialogMessage("Gagal", "Format gambar harus PNG, JPG, atau JPEG");
+                showDialogMessage("Gagal", "Format gambar harus PNG, JPG, JPEG, atau GIF");
                 return;
             }
 
-            startCrop(imageUri);
+            long fileSize = getFileSizeFromUri(imageUri);
+
+            if (fileSize > MAX_IMAGE_SIZE_BYTES) {
+                showDialogMessage("Gagal", "Ukuran gambar maksimal 12 MB");
+                return;
+            }
+
+            if (mimeType.equals("image/gif")) {
+                loadLocalGif(imageUri);
+                new UploadProfilePictureTask().execute(imageUri);
+            } else {
+                startCrop(imageUri);
+            }
         }
 
         if (requestCode == UCROP_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Uri croppedUri = UCrop.getOutput(data);
 
             if (croppedUri != null) {
+                long croppedSize = getFileSizeFromUri(croppedUri);
+
+                if (croppedSize > MAX_IMAGE_SIZE_BYTES) {
+                    showDialogMessage("Gagal", "Ukuran gambar maksimal 12 MB");
+                    return;
+                }
+
                 imgProfile.setImageURI(croppedUri);
                 new UploadProfilePictureTask().execute(croppedUri);
             }
@@ -275,6 +292,64 @@ public class ProfileActivity extends Activity {
             } else {
                 showDialogMessage("Gagal", "Crop gambar gagal");
             }
+        }
+    }
+
+    private void loadLocalGif(Uri imageUri) {
+        try {
+            Glide.with(ProfileActivity.this).clear(imgProfile);
+
+            Glide.with(ProfileActivity.this)
+                    .asGif()
+                    .load(imageUri)
+                    .diskCacheStrategy(DiskCacheStrategy.DATA)
+                    .override(160, 160)
+                    .placeholder(R.drawable.ic_profile_big)
+                    .error(R.drawable.ic_profile_big)
+                    .into(imgProfile);
+
+        } catch (Exception e) {
+            imgProfile.setImageResource(R.drawable.ic_profile_big);
+        }
+    }
+
+    private void loadProfilePicture(String profilePicture) {
+        if (profilePicture == null || profilePicture.trim().equals("") || profilePicture.equals("null")) {
+            try {
+                Glide.with(ProfileActivity.this).clear(imgProfile);
+            } catch (Exception ignored) {
+            }
+
+            imgProfile.setImageResource(R.drawable.ic_profile_big);
+            return;
+        }
+
+        String lowerUrl = profilePicture.toLowerCase();
+
+        try {
+            Glide.with(ProfileActivity.this).clear(imgProfile);
+
+            if (lowerUrl.endsWith(".gif")) {
+                Glide.with(ProfileActivity.this)
+                        .asGif()
+                        .load(profilePicture)
+                        .diskCacheStrategy(DiskCacheStrategy.DATA)
+                        .override(160, 160)
+                        .placeholder(R.drawable.ic_profile_big)
+                        .error(R.drawable.ic_profile_big)
+                        .into(imgProfile);
+            } else {
+                Glide.with(ProfileActivity.this)
+                        .load(profilePicture)
+                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        .override(256, 256)
+                        .placeholder(R.drawable.ic_profile_big)
+                        .error(R.drawable.ic_profile_big)
+                        .into(imgProfile);
+            }
+
+        } catch (Exception e) {
+            imgProfile.setImageResource(R.drawable.ic_profile_big);
         }
     }
 
@@ -294,6 +369,46 @@ public class ProfileActivity extends Activity {
 
     private int dpToPx(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private long getFileSizeFromUri(Uri uri) {
+        long size = -1;
+
+        try {
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+
+            if (cursor != null) {
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+
+                if (sizeIndex >= 0 && cursor.moveToFirst()) {
+                    size = cursor.getLong(sizeIndex);
+                }
+
+                cursor.close();
+            }
+
+            if (size <= 0) {
+                InputStream inputStream = getContentResolver().openInputStream(uri);
+
+                if (inputStream != null) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    long total = 0;
+
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        total += bytesRead;
+                    }
+
+                    inputStream.close();
+                    size = total;
+                }
+            }
+
+        } catch (Exception e) {
+            size = -1;
+        }
+
+        return size;
     }
 
     private void showLogoutConfirmation() {
@@ -625,14 +740,14 @@ public class ProfileActivity extends Activity {
                 JSONObject jsonObject = new JSONObject(response);
 
                 boolean success = jsonObject.getBoolean("success");
-                String message = jsonObject.getString("message");
+                String message = jsonObject.optString("message", "");
 
                 if (success) {
                     if (action.equals("get_profile")) {
-                        currentUsername = jsonObject.getString("nama");
-                        currentEmail = jsonObject.getString("email");
-                        currentPhone = jsonObject.getString("no_hp");
-                        currentProfileName = jsonObject.getString("profile_name");
+                        currentUsername = jsonObject.optString("nama", "");
+                        currentEmail = jsonObject.optString("email", "");
+                        currentPhone = jsonObject.optString("no_hp", "");
+                        currentProfileName = jsonObject.optString("profile_name", "");
 
                         if (currentProfileName.equals("") || currentProfileName.equals("null")) {
                             currentProfileName = currentUsername;
@@ -640,29 +755,43 @@ public class ProfileActivity extends Activity {
 
                         tvProfileName.setText(currentProfileName);
 
-                        String profilePicture = jsonObject.optString("profile_picture", "");
+                        currentProfilePicture = jsonObject.optString("profile_picture", "");
+                        loadProfilePicture(currentProfilePicture);
+                        firstLoadDone = true;
 
-                        if (!profilePicture.equals("") && !profilePicture.equals("null")) {
-                            new DownloadImageTask(imgProfile).execute(profilePicture);
-                        } else {
-                            imgProfile.setImageResource(R.drawable.ic_profile_big);
-                        }
+                    } else if (action.equals("reset_profile_picture")) {
+                        showDialogMessage("Berhasil", message);
+                        loadProfilePicture("");
+                        new ProfileTask("get_profile").execute();
 
                     } else {
                         showDialogMessage("Berhasil", message);
                         new ProfileTask("get_profile").execute();
                     }
+
                 } else {
                     showDialogMessage("Gagal", message);
+
+                    if (!action.equals("get_profile")) {
+                        new ProfileTask("get_profile").execute();
+                    }
                 }
 
             } catch (Exception e) {
-                showDialogMessage("Gagal", "Response server tidak valid");
+                showDialogMessage("Gagal", "Response server tidak valid:\n" + limitText(response));
             }
         }
     }
 
     private class UploadProfilePictureTask extends AsyncTask<Uri, Void, String> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+            setUploadUiEnabled(false);
+            showLoadingDialog("Mengupload foto profile...\nMohon tunggu sampai selesai");
+        }
 
         @Override
         protected String doInBackground(Uri... uris) {
@@ -678,8 +807,9 @@ public class ProfileActivity extends Activity {
                 conn.setRequestMethod("POST");
                 conn.setDoInput(true);
                 conn.setDoOutput(true);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
+
+                conn.setConnectTimeout(60000);
+                conn.setReadTimeout(60000);
 
                 conn.setRequestProperty("Connection", "Keep-Alive");
                 conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
@@ -706,7 +836,7 @@ public class ProfileActivity extends Activity {
                     return "{\"success\":false,\"message\":\"Gagal membaca gambar\"}";
                 }
 
-                byte[] buffer = new byte[4096];
+                byte[] buffer = new byte[8192];
                 int bytesRead;
 
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
@@ -740,7 +870,7 @@ public class ProfileActivity extends Activity {
                 return result.toString();
 
             } catch (Exception e) {
-                return "{\"success\":false,\"message\":\"Upload gagal\"}";
+                return "{\"success\":false,\"message\":\"Upload gagal: " + e.getMessage() + "\"}";
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -750,51 +880,88 @@ public class ProfileActivity extends Activity {
 
         @Override
         protected void onPostExecute(String response) {
+            hideLoadingDialog();
+            setUploadUiEnabled(true);
+
             try {
                 JSONObject jsonObject = new JSONObject(response);
 
                 boolean success = jsonObject.getBoolean("success");
-                String message = jsonObject.getString("message");
+                String message = jsonObject.optString("message", "");
 
                 if (success) {
                     showDialogMessage("Berhasil", message);
-                    new ProfileTask("get_profile").execute();
                 } else {
                     showDialogMessage("Gagal", message);
                 }
 
+                new ProfileTask("get_profile").execute();
+
             } catch (Exception e) {
-                showDialogMessage("Gagal", "Response server tidak valid");
+                showDialogMessage("Gagal", "Response server tidak valid:\n" + limitText(response));
+                new ProfileTask("get_profile").execute();
             }
+        }
+
+        @Override
+        protected void onCancelled() {
+            hideLoadingDialog();
+            setUploadUiEnabled(true);
+            super.onCancelled();
         }
     }
 
-    private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+    private void setUploadUiEnabled(boolean enabled) {
+        imgProfile.setEnabled(enabled);
+        btnChangeEmail.setEnabled(enabled);
+        btnChangePhone.setEnabled(enabled);
+        btnChangeProfileName.setEnabled(enabled);
+        btnChangeUsername.setEnabled(enabled);
+        btnChangePassword.setEnabled(enabled);
+        btnKeluar.setEnabled(enabled);
 
-        private ImageView imageView;
+        navHome.setEnabled(enabled);
+        navFavorite.setEnabled(enabled);
+        navCart.setEnabled(enabled);
+        navOrder.setEnabled(enabled);
+        navProfile.setEnabled(enabled);
+    }
 
-        DownloadImageTask(ImageView imageView) {
-            this.imageView = imageView;
+    private void showLoadingDialog(String message) {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            return;
         }
 
-        @Override
-        protected Bitmap doInBackground(String... urls) {
-            try {
-                URL url = new URL(urls[0]);
-                InputStream inputStream = url.openStream();
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                inputStream.close();
-                return bitmap;
-            } catch (Exception e) {
-                return null;
-            }
-        }
+        LinearLayout layout = new LinearLayout(ProfileActivity.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER);
+        layout.setPadding(dpToPx(28), dpToPx(24), dpToPx(28), dpToPx(24));
 
-        @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            if (bitmap != null) {
-                imageView.setImageBitmap(bitmap);
-            }
+        ProgressBar progressBar = new ProgressBar(ProfileActivity.this);
+        progressBar.setIndeterminate(true);
+
+        TextView tvMessage = new TextView(ProfileActivity.this);
+        tvMessage.setText(message);
+        tvMessage.setTextSize(15);
+        tvMessage.setTextColor(Color.BLACK);
+        tvMessage.setGravity(Gravity.CENTER);
+        tvMessage.setPadding(0, dpToPx(14), 0, 0);
+
+        layout.addView(progressBar);
+        layout.addView(tvMessage);
+
+        loadingDialog = new AlertDialog.Builder(ProfileActivity.this)
+                .setView(layout)
+                .create();
+
+        loadingDialog.setCancelable(false);
+        loadingDialog.setCanceledOnTouchOutside(false);
+        loadingDialog.show();
+    }
+
+    private void hideLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            loadingDialog.dismiss();
         }
     }
 
@@ -820,6 +987,39 @@ public class ProfileActivity extends Activity {
         }
 
         return fileName;
+    }
+
+    private String limitText(String text) {
+        if (text == null || text.trim().equals("")) {
+            return "Response kosong dari server";
+        }
+
+        if (text.length() > 300) {
+            return text.substring(0, 300);
+        }
+
+        return text;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (userId != -1 && firstLoadDone) {
+            new ProfileTask("get_profile").execute();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        hideLoadingDialog();
+
+        try {
+            Glide.with(ProfileActivity.this).clear(imgProfile);
+        } catch (Exception ignored) {
+        }
+
+        super.onDestroy();
     }
 
     private void showDialogMessage(String title, String message) {
