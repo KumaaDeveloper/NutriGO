@@ -36,7 +36,6 @@ public class LoginActivity extends Activity {
 
     private EditText etNamaLogin;
     private EditText etPasswordLogin;
-
     private boolean passwordVisible = false;
 
     @Override
@@ -54,7 +53,6 @@ public class LoginActivity extends Activity {
         etPasswordLogin = findViewById(R.id.etPasswordLogin);
 
         ImageButton btnEyeLogin = findViewById(R.id.btnEyeLogin);
-
         TextView tvLupaSandi = findViewById(R.id.tvLupaSandi);
         TextView tvDaftarSekarang = findViewById(R.id.tvDaftarSekarang);
         Button btnMasuk = findViewById(R.id.btnMasuk);
@@ -72,10 +70,8 @@ public class LoginActivity extends Activity {
             startActivity(intent);
         });
 
-        tvDaftarSekarang.setOnClickListener(v -> {
-            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-            startActivity(intent);
-        });
+        tvDaftarSekarang.setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class)));
 
         btnMasuk.setOnClickListener(v -> {
             String nama = etNamaLogin.getText().toString().trim();
@@ -85,7 +81,6 @@ public class LoginActivity extends Activity {
                 etNamaLogin.setError(getString(R.string.nama_harus_diisi));
                 return;
             }
-
             if (password.isEmpty()) {
                 etPasswordLogin.setError(getString(R.string.password_harus_diisi));
                 return;
@@ -114,13 +109,7 @@ public class LoginActivity extends Activity {
             return;
         }
 
-        Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-        intent.putExtra("user_id", userId);
-        intent.putExtra("nama", nama);
-        intent.putExtra("email", email);
-        intent.putExtra("no_hp", noHp);
-        startActivity(intent);
-        finish();
+        goToHome(userId, nama, email, noHp);
     }
 
     private void saveLoginSession(int userId, String nama, String email, String noHp) {
@@ -132,7 +121,6 @@ public class LoginActivity extends Activity {
         editor.putString(KEY_NAMA, nama);
         editor.putString(KEY_EMAIL, email);
         editor.putString(KEY_NO_HP, noHp);
-
         editor.apply();
     }
 
@@ -169,19 +157,37 @@ public class LoginActivity extends Activity {
         finish();
     }
 
-    private class LoginTask extends AsyncTask<String, Void, String> {
+    private void togglePassword(EditText editText, ImageButton imageButton, boolean visible) {
+        if (visible) {
+            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            imageButton.setImageResource(R.drawable.ic_eye);
+            imageButton.setContentDescription(getString(R.string.sembunyikan_password));
+        } else {
+            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            imageButton.setImageResource(R.drawable.ic_eye_close);
+            imageButton.setContentDescription(getString(R.string.tampilkan_password));
+        }
+        editText.setSelection(editText.getText().length());
+    }
 
+    private void showDialogMessage(String title, String message) {
+        new AlertDialog.Builder(LoginActivity.this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(getString(R.string.tutup), (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+    private class LoginTask extends AsyncTask<String, Void, String> {
         @Override
         protected String doInBackground(String... data) {
             HttpURLConnection conn = null;
-
             try {
                 String nama = data[0];
                 String password = data[1];
 
                 URL url = new URL(CONNECTOR_URL);
                 conn = (HttpURLConnection) url.openConnection();
-
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setDoInput(true);
@@ -194,16 +200,13 @@ public class LoginActivity extends Activity {
                                 URLEncoder.encode("password", "UTF-8") + "=" + URLEncoder.encode(password, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
-
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
                 writer.write(postData);
                 writer.flush();
                 writer.close();
-
                 os.close();
 
                 BufferedReader reader;
-
                 if (conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
                     reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 } else {
@@ -212,13 +215,10 @@ public class LoginActivity extends Activity {
 
                 StringBuilder result = new StringBuilder();
                 String line;
-
                 while ((line = reader.readLine()) != null) {
                     result.append(line);
                 }
-
                 reader.close();
-
                 return result.toString();
 
             } catch (Exception e) {
@@ -234,7 +234,6 @@ public class LoginActivity extends Activity {
         protected void onPostExecute(String response) {
             try {
                 JSONObject jsonObject = new JSONObject(response);
-
                 boolean success = jsonObject.getBoolean("success");
                 String message = jsonObject.getString("message");
 
@@ -248,35 +247,9 @@ public class LoginActivity extends Activity {
                 } else {
                     showDialogMessage(getString(R.string.login_gagal), message);
                 }
-
             } catch (Exception e) {
-                showDialogMessage(
-                        getString(R.string.login_gagal),
-                        "Response server tidak valid"
-                );
+                showDialogMessage(getString(R.string.login_gagal), "Response server tidak valid");
             }
         }
-    }
-
-    private void togglePassword(EditText editText, ImageButton imageButton, boolean visible) {
-        if (visible) {
-            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
-            imageButton.setImageResource(R.drawable.ic_eye);
-            imageButton.setContentDescription(getString(R.string.sembunyikan_password));
-        } else {
-            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-            imageButton.setImageResource(R.drawable.ic_eye_close);
-            imageButton.setContentDescription(getString(R.string.tampilkan_password));
-        }
-
-        editText.setSelection(editText.getText().length());
-    }
-
-    private void showDialogMessage(String title, String message) {
-        new AlertDialog.Builder(LoginActivity.this)
-                .setTitle(title)
-                .setMessage(message)
-                .setPositiveButton(getString(R.string.tutup), (dialog, which) -> dialog.dismiss())
-                .show();
     }
 }

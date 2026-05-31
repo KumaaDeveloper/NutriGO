@@ -12,7 +12,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.pedulimakanan"
+        // PERBAIKAN: Identitas diganti agar unik dan tidak bentrok dengan projek latihan Intent
+        applicationId = "com.example.pedulimakanan.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -38,6 +39,9 @@ android {
 }
 
 dependencies {
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)

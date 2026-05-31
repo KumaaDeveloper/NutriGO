@@ -1,19 +1,24 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-
-    <path
-        android:fillColor="#000000"
-        android:pathData="M4,5H20C21.1,5 22,5.9 22,7V17C22,18.1 21.1,19 20,19H4C2.9,19 2,18.1 2,17V7C2,5.9 2.9,5 4,5Z" />
-
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M4,8H22V10H4Z" />
-
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M5,14H11V16H5Z" />
-
+    android:width="15dp"
+    android:height="15dp"
+    android:viewportWidth="15"
+    android:viewportHeight="15">
+  <path
+      android:pathData="M3.563,3C3.015,3 2.491,3.217 2.104,3.604C1.717,3.991 1.5,4.515 1.5,5.063V6H13.5V5.063C13.5,4.515 13.283,3.991 12.896,3.604C12.509,3.217 11.984,3 11.438,3H3.563ZM13.5,6.75H1.5V9.938C1.5,10.484 1.717,11.009 2.104,11.396C2.491,11.783 3.015,12 3.563,12H11.438C11.984,12 12.509,11.783 12.896,11.396C13.283,11.009 13.5,10.484 13.5,9.938V6.75ZM10.125,9.75H11.625C11.724,9.75 11.82,9.79 11.89,9.86C11.96,9.93 12,10.026 12,10.125C12,10.224 11.96,10.32 11.89,10.39C11.82,10.46 11.724,10.5 11.625,10.5H10.125C10.026,10.5 9.93,10.46 9.86,10.39C9.79,10.32 9.75,10.224 9.75,10.125C9.75,10.026 9.79,9.93 9.86,9.86C9.93,9.79 10.026,9.75 10.125,9.75Z"
+      android:fillColor="#000000"/>
 </vector>
