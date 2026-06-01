@@ -109,6 +109,9 @@ public class HomeActivity extends Activity {
 
         rvStores = findViewById(R.id.rvStores);
         rvStores.setLayoutManager(new GridLayoutManager(this, 2));
+        rvStores.setNestedScrollingEnabled(false);
+        rvStores.setHasFixedSize(false);
+        rvStores.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         storeAdapter = new RestaurantAdapter(
                 HomeActivity.this,
@@ -219,7 +222,6 @@ public class HomeActivity extends Activity {
 
         for (int i = 0; i < btnIds.length; i++) {
             final int amount = presets[i];
-
             findViewById(btnIds[i]).setOnClickListener(v -> executeTopupServer(amount));
         }
 
