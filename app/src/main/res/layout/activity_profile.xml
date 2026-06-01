@@ -154,55 +154,105 @@
         android:paddingStart="14dp"
         android:paddingEnd="14dp">
 
-        <ImageButton
-            android:id="@+id/navHome"
+        <LinearLayout
+            android:id="@+id/layoutNavHome"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@android:color/transparent"
-            android:padding="14dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_home" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/navFavorite"
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Home"
+                android:src="@drawable/ic_nav_home_active"
+                android:tint="#246E9B" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutNavFavorit"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@android:color/transparent"
-            android:padding="14dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_favorite" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/navCart"
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Favorit"
+                android:src="@drawable/ic_nav_favorite"
+                android:tint="#246E9B" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutNavCart"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@android:color/transparent"
-            android:padding="14dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_cart" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/navOrder"
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Cart"
+                android:src="@drawable/ic_nav_cart"
+                android:tint="#246E9B" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutNavTransaksi"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@android:color/transparent"
-            android:padding="14dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_order" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/navProfile"
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Transaksi"
+                android:src="@drawable/ic_nav_transaction"
+                android:tint="#246E9B" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutNavProfile"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="44dp"
             android:layout_weight="1"
             android:background="@drawable/bg_nav_active"
-            android:padding="12dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_profile" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Profile"
+                android:src="@drawable/ic_nav_profile"
+                android:tint="#246E9B" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -11,6 +11,8 @@ import android.widget.*;
 
 public class FavoriteActivity extends Activity {
 
+    private static final String PREF_NAME = "login_session";
+
     private DatabaseHelper db;
     private int userId;
     private LinearLayout llFavoriteContainer;
@@ -21,15 +23,25 @@ public class FavoriteActivity extends Activity {
         setContentView(R.layout.activity_favorite);
 
         db = new DatabaseHelper(this);
-        SharedPreferences prefs = getSharedPreferences("user_session", MODE_PRIVATE);
+
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         userId = prefs.getInt("user_id", -1);
 
         findViewById(R.id.btnBackFavorite).setOnClickListener(v -> finish());
+
         llFavoriteContainer = findViewById(R.id.llFavoriteContainer);
 
+        setupBottomNav();
         loadFavorites();
+    }
 
-        // ── INTEGRASI LOGIKA BOTTOM NAVBAR MANUAL ──
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFavorites();
+    }
+
+    private void setupBottomNav() {
         LinearLayout layoutNavHome      = findViewById(R.id.layoutNavHome);
         LinearLayout layoutNavFavorit   = findViewById(R.id.layoutNavFavorit);
         LinearLayout layoutNavCart      = findViewById(R.id.layoutNavCart);
@@ -37,7 +49,7 @@ public class FavoriteActivity extends Activity {
         LinearLayout layoutNavProfile   = findViewById(R.id.layoutNavProfile);
 
         layoutNavHome.setOnClickListener(v -> {
-            Intent intent = new Intent(this, HomeActivity.class);
+            Intent intent = new Intent(FavoriteActivity.this, HomeActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
             finish();
@@ -47,47 +59,56 @@ public class FavoriteActivity extends Activity {
             // Sudah berada di halaman favorit
         });
 
-        // FIX TOTAL: Singkirkan Toast "coming soon", langsung luncurkan CartActivity
         layoutNavCart.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CartActivity.class);
+            Intent intent = new Intent(FavoriteActivity.this, CartActivity.class);
             startActivity(intent);
+            finish();
         });
 
         layoutNavTransaksi.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TransactionActivity.class);
+            Intent intent = new Intent(FavoriteActivity.this, TransactionActivity.class);
             startActivity(intent);
+            finish();
         });
 
-        layoutNavProfile.setOnClickListener(v ->
-                Toast.makeText(this, "Profil (coming soon)", Toast.LENGTH_SHORT).show());
+        layoutNavProfile.setOnClickListener(v -> {
+            Intent intent = new Intent(FavoriteActivity.this, ProfileActivity.class);
+            intent.putExtra("user_id", userId);
+            startActivity(intent);
+            finish();
+        });
     }
 
     private void loadFavorites() {
         llFavoriteContainer.removeAllViews();
-        if (userId == -1) return;
+
+        if (userId == -1) {
+            showEmptyFavoriteBox();
+            return;
+        }
 
         Cursor c = db.getFavoritByUser(userId);
 
-        if (!c.moveToFirst()) {
-            TextView empty = new TextView(this);
-            empty.setText("Belum ada restoran favorit.");
-            empty.setPadding(32, 32, 32, 32);
-            empty.setGravity(android.view.Gravity.CENTER);
-            llFavoriteContainer.addView(empty);
-            c.close();
+        if (c == null || !c.moveToFirst()) {
+            showEmptyFavoriteBox();
+
+            if (c != null) {
+                c.close();
+            }
+
             return;
         }
 
         do {
-            int    restoId   = c.getInt(c.getColumnIndexOrThrow("id"));
+            int restoId = c.getInt(c.getColumnIndexOrThrow("id"));
             String namaResto = c.getString(c.getColumnIndexOrThrow("nama_resto"));
-            String kategori  = c.getString(c.getColumnIndexOrThrow("kategori"));
+            String kategori = c.getString(c.getColumnIndexOrThrow("kategori"));
 
             View card = LayoutInflater.from(this)
                     .inflate(R.layout.item_restaurant_card, llFavoriteContainer, false);
 
-            TextView tvNama    = card.findViewById(R.id.tvNamaResto);
-            TextView tvKat     = card.findViewById(R.id.tvKategori);
+            TextView tvNama = card.findViewById(R.id.tvNamaResto);
+            TextView tvKat = card.findViewById(R.id.tvKategori);
             ImageView imgResto = card.findViewById(R.id.imgResto);
 
             tvNama.setText(namaResto);
@@ -95,38 +116,76 @@ public class FavoriteActivity extends Activity {
             imgResto.setImageResource(getRestoImage(namaResto));
 
             ImageView imgBtnFavorite = card.findViewById(R.id.imgBtnFavorite);
+
             if (imgBtnFavorite != null) {
                 imgBtnFavorite.setImageResource(R.drawable.ic_favorite);
                 imgBtnFavorite.setColorFilter(android.graphics.Color.parseColor("#FF4A4A"));
 
                 imgBtnFavorite.setOnClickListener(v -> {
                     db.toggleFavorit(userId, restoId);
-                    Toast.makeText(this, namaResto + " dihapus dari favorit", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(
+                            FavoriteActivity.this,
+                            namaResto + " dihapus dari favorit",
+                            Toast.LENGTH_SHORT
+                    ).show();
+
                     loadFavorites();
                 });
             }
 
             card.setOnClickListener(v -> {
-                Intent intent = new Intent(this, StoreDetailActivity.class);
+                Intent intent = new Intent(FavoriteActivity.this, StoreDetailActivity.class);
                 intent.putExtra("restoran_id", restoId);
                 intent.putExtra("restoran_nama", namaResto);
                 startActivity(intent);
             });
 
             llFavoriteContainer.addView(card);
+
         } while (c.moveToNext());
+
         c.close();
     }
 
+    private void showEmptyFavoriteBox() {
+        View emptyView = LayoutInflater.from(this)
+                .inflate(R.layout.item_empty_favorite, llFavoriteContainer, false);
+
+        Button btnCariMakanan = emptyView.findViewById(R.id.btnCariMakanan);
+
+        btnCariMakanan.setOnClickListener(v -> {
+            Intent intent = new Intent(FavoriteActivity.this, HomeActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
+
+        llFavoriteContainer.addView(emptyView);
+    }
+
     private int getRestoImage(String nama) {
-        if (nama == null) return R.drawable.img_placeholder_food;
+        if (nama == null) {
+            return R.drawable.img_placeholder_food;
+        }
+
         switch (nama.toLowerCase().trim()) {
-            case "saladstop":  return R.drawable.img_saladstop;
-            case "burgreen":   return R.drawable.img_burgreen;
-            case "supergrain": return R.drawable.img_supergrain;
-            case "greenbowl":  return R.drawable.img_greenbowl;
-            case "freshbox":   return R.drawable.img_freshbox;
-            default:           return R.drawable.img_placeholder_food;
+            case "saladstop":
+                return R.drawable.img_saladstop;
+
+            case "burgreen":
+                return R.drawable.img_burgreen;
+
+            case "supergrain":
+                return R.drawable.img_supergrain;
+
+            case "greenbowl":
+                return R.drawable.img_greenbowl;
+
+            case "freshbox":
+                return R.drawable.img_freshbox;
+
+            default:
+                return R.drawable.img_placeholder_food;
         }
     }
 }

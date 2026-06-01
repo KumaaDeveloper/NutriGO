@@ -4,6 +4,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -13,7 +19,25 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.PeduliMakanan"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+
+        </provider>
+
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".SplashActivity"
@@ -42,13 +66,29 @@
             android:name=".HomeActivity"
             android:exported="false" />
 
-        <activity android:name=".StoreDetailActivity" />
-        <activity android:name=".CartActivity" />
-        <activity android:name=".TransactionActivity" />
-        <activity android:name=".TransactionDetailActivity" />
-        <activity android:name=".FavoriteActivity" />
-        <activity android:name=".ProfileActivity" />
+        <activity
+            android:name=".StoreDetailActivity"
+            android:exported="false" />
 
+        <activity
+            android:name=".CartActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TransactionActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TransactionDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".FavoriteActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false" />
 
     </application>
 

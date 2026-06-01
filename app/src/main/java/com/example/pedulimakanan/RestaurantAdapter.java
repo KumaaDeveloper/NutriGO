@@ -17,6 +17,8 @@ import java.util.List;
 
 public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.ViewHolder> {
 
+    private static final String PREF_NAME = "login_session";
+
     public interface OnItemClickListener {
         void onItemClick(RestoranModel store);
     }
@@ -27,15 +29,15 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
     private DatabaseHelper db;
     private int userId;
 
-    public RestaurantAdapter(Context context, List<RestoranModel> stores,
-                             OnItemClickListener listener) {
-        this.context  = context;
-        this.stores   = stores;
+    public RestaurantAdapter(Context context, List<RestoranModel> stores, OnItemClickListener listener) {
+        this.context = context;
+        this.stores = stores;
         this.listener = listener;
 
-        this.db = new DatabaseHelper(context);
-        SharedPreferences prefs = context.getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        this.userId = prefs.getInt("user_id", -1);
+        db = new DatabaseHelper(context);
+
+        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        userId = prefs.getInt("user_id", -1);
     }
 
     public void updateData(List<RestoranModel> newStores) {
@@ -48,6 +50,7 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(context)
                 .inflate(R.layout.item_restaurant_card, parent, false);
+
         return new ViewHolder(v);
     }
 
@@ -61,59 +64,117 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
         int imageRes = getImageResource(store.namaResto);
         holder.imgResto.setImageResource(imageRes);
 
-        // ── KONTROL STATE WARNA TOGGLE FAVORIT (IC_FAVORITE TUNGGAL) ──
-        if (userId != -1 && store.id != 0) {
-            if (db.isFavorit(userId, store.id)) {
-                holder.imgBtnFavorite.setColorFilter(Color.parseColor("#FF4A4A")); // Filter Merah
-            } else {
-                holder.imgBtnFavorite.setColorFilter(Color.parseColor("#FFFFFF")); // Filter Putih (Outline Hitam bawaan XML tetap aman)
-            }
+        holder.imgBtnFavorite.setImageResource(R.drawable.ic_favorite);
 
-            holder.imgBtnFavorite.setOnClickListener(v -> {
-                db.toggleFavorit(userId, store.id);
+        boolean isFavorit = false;
 
-                if (db.isFavorit(userId, store.id)) {
-                    holder.imgBtnFavorite.setColorFilter(Color.parseColor("#FF4A4A"));
-                    Toast.makeText(context, store.namaResto + " ditambah ke favorit", Toast.LENGTH_SHORT).show();
-                } else {
-                    holder.imgBtnFavorite.setColorFilter(Color.parseColor("#FFFFFF"));
-                    Toast.makeText(context, store.namaResto + " dihapus dari favorit", Toast.LENGTH_SHORT).show();
-                }
-            });
+        if (userId != -1 && store.id > 0) {
+            isFavorit = db.isFavorit(userId, store.id);
         }
 
-        holder.itemView.setOnClickListener(v -> listener.onItemClick(store));
+        setFavoriteIcon(holder.imgBtnFavorite, isFavorit);
+
+        holder.btnFavoriteContainer.setOnClickListener(v -> {
+            if (userId == -1) {
+                Toast.makeText(context, "Silakan login terlebih dahulu", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (store.id <= 0) {
+                Toast.makeText(context, "Data restoran tidak valid", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            db.toggleFavorit(userId, store.id);
+
+            boolean nowFavorit = db.isFavorit(userId, store.id);
+            setFavoriteIcon(holder.imgBtnFavorite, nowFavorit);
+
+            if (nowFavorit) {
+                Toast.makeText(
+                        context,
+                        store.namaResto + " ditambahkan ke favorit",
+                        Toast.LENGTH_SHORT
+                ).show();
+            } else {
+                Toast.makeText(
+                        context,
+                        store.namaResto + " dihapus dari favorit",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+        });
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(store);
+            }
+        });
     }
 
+    private void setFavoriteIcon(ImageView imageView, boolean active) {
+        imageView.setImageResource(R.drawable.ic_favorite);
+
+        if (active) {
+            imageView.setColorFilter(Color.parseColor("#FF4A4A"));
+        } else {
+            imageView.clearColorFilter();
+        }
+    }
+
+
     private int getImageResource(String namaResto) {
-        if (namaResto == null) return R.drawable.img_placeholder_food;
+        if (namaResto == null) {
+            return R.drawable.img_placeholder_food;
+        }
+
         switch (namaResto.toLowerCase().trim()) {
-            case "saladstop":  return R.drawable.img_saladstop;
-            case "burgreen":   return R.drawable.img_burgreen;
-            case "supergrain": return R.drawable.img_supergrain;
-            case "greenbowl":  return R.drawable.img_greenbowl;
-            case "freshbox":   return R.drawable.img_freshbox;
-            case "nutrisnack": return R.drawable.img_nutri_snack;
-            case "smoothiebar": return R.drawable.img_smoothie_bar;
-            default:           return R.drawable.img_placeholder_food;
+            case "saladstop":
+                return R.drawable.img_saladstop;
+
+            case "burgreen":
+                return R.drawable.img_burgreen;
+
+            case "supergrain":
+                return R.drawable.img_supergrain;
+
+            case "greenbowl":
+                return R.drawable.img_greenbowl;
+
+            case "freshbox":
+                return R.drawable.img_freshbox;
+
+            case "nutrisnack":
+                return R.drawable.img_nutri_snack;
+
+            case "smoothiebar":
+                return R.drawable.img_smoothie_bar;
+
+            default:
+                return R.drawable.img_placeholder_food;
         }
     }
 
     @Override
     public int getItemCount() {
-        return stores.size();
+        return stores == null ? 0 : stores.size();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView imgResto, imgBtnFavorite;
-        TextView  tvNamaResto, tvKategori;
+        ImageView imgResto;
+        ImageView imgBtnFavorite;
+        TextView tvNamaResto;
+        TextView tvKategori;
+        View btnFavoriteContainer;
 
         ViewHolder(View itemView) {
             super(itemView);
-            imgResto        = itemView.findViewById(R.id.imgResto);
-            imgBtnFavorite  = itemView.findViewById(R.id.imgBtnFavorite);
-            tvNamaResto     = itemView.findViewById(R.id.tvNamaResto);
-            tvKategori      = itemView.findViewById(R.id.tvKategori);
+
+            imgResto = itemView.findViewById(R.id.imgResto);
+            imgBtnFavorite = itemView.findViewById(R.id.imgBtnFavorite);
+            tvNamaResto = itemView.findViewById(R.id.tvNamaResto);
+            tvKategori = itemView.findViewById(R.id.tvKategori);
+            btnFavoriteContainer = itemView.findViewById(R.id.btnFavoriteContainer);
         }
     }
 }
