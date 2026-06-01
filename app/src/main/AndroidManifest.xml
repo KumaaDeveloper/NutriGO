@@ -42,6 +42,14 @@
             android:name=".HomeActivity"
             android:exported="false" />
 
+        <activity android:name=".StoreDetailActivity" />
+        <activity android:name=".CartActivity" />
+        <activity android:name=".TransactionActivity" />
+        <activity android:name=".TransactionDetailActivity" />
+        <activity android:name=".FavoriteActivity" />
+        <activity android:name=".ProfileActivity" />
+
+
     </application>
 
 </manifest>
