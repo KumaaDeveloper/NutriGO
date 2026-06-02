@@ -10,16 +10,26 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AutoCompleteTextView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
@@ -28,6 +38,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.yalantis.ucrop.UCrop;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -42,6 +53,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 
 @SuppressWarnings("deprecation")
 public class ProfileActivity extends Activity {
@@ -58,7 +70,7 @@ public class ProfileActivity extends Activity {
 
     private Button btnChangeEmail;
     private Button btnChangePhone;
-    private Button btnChangeProfileName;
+    private Button btnChangeAddress;
     private Button btnChangeUsername;
     private Button btnChangePassword;
     private Button btnKeluar;
@@ -77,9 +89,19 @@ public class ProfileActivity extends Activity {
     private String currentPhone = "";
     private String currentProfileName = "";
     private String currentUsername = "";
+    private String currentAddress = "";
     private String currentProfilePicture = "";
 
     private boolean firstLoadDone = false;
+
+    private final Handler addressHandler = new Handler(Looper.getMainLooper());
+    private Runnable addressRunnable;
+    private boolean isSelectingAddress = false;
+    private boolean isAddressValid = false;
+    private String selectedValidAddress = "";
+    private final ArrayList<String> addressSuggestions = new ArrayList<>();
+    private AddressSuggestionAdapter addressAdapter;
+    private AutoCompleteTextView activeAddressInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,7 +116,7 @@ public class ProfileActivity extends Activity {
 
         btnChangeEmail = findViewById(R.id.btnChangeEmail);
         btnChangePhone = findViewById(R.id.btnChangePhone);
-        btnChangeProfileName = findViewById(R.id.btnChangeProfileName);
+        btnChangeAddress = findViewById(R.id.btnChangeAddress);
         btnChangeUsername = findViewById(R.id.btnChangeUsername);
         btnChangePassword = findViewById(R.id.btnChangePassword);
         btnKeluar = findViewById(R.id.btnKeluar);
@@ -117,9 +139,13 @@ public class ProfileActivity extends Activity {
 
         imgProfile.setOnClickListener(v -> showProfilePictureMenu());
 
+        tvProfileName.setClickable(true);
+        tvProfileName.setFocusable(true);
+        tvProfileName.setOnClickListener(v -> showChangeProfileNameDialog());
+
         btnChangeEmail.setOnClickListener(v -> showChangeEmailDialog());
         btnChangePhone.setOnClickListener(v -> showChangePhoneDialog());
-        btnChangeProfileName.setOnClickListener(v -> showChangeProfileNameDialog());
+        btnChangeAddress.setOnClickListener(v -> showChangeAddressDialog());
         btnChangeUsername.setOnClickListener(v -> showChangeUsernameDialog());
         btnChangePassword.setOnClickListener(v -> showChangePasswordDialog());
         btnKeluar.setOnClickListener(v -> showLogoutConfirmation());
@@ -161,7 +187,7 @@ public class ProfileActivity extends Activity {
         layoutNavFavorit.setBackgroundColor(Color.TRANSPARENT);
         layoutNavCart.setBackgroundColor(Color.TRANSPARENT);
         layoutNavTransaksi.setBackgroundColor(Color.TRANSPARENT);
-        layoutNavProfile.setBackgroundResource(R.drawable.bg_nav_active);
+        layoutNavProfile.setBackgroundColor(Color.TRANSPARENT);
 
         layoutNavHome.setPadding(0, 0, 0, 0);
         layoutNavFavorit.setPadding(0, 0, 0, 0);
@@ -507,12 +533,12 @@ public class ProfileActivity extends Activity {
 
         tvOldValue.setText("Email sebelumnya: " + currentEmail);
         etNewValue.setHint("Masukkan email baru");
-        etNewValue.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        etNewValue.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Change Email")
                 .setView(view)
-                .setPositiveButton("Simpan", null)
+                .setPositiveButton("Lanjut", null)
                 .setNegativeButton("Batal", null)
                 .create();
 
@@ -527,8 +553,23 @@ public class ProfileActivity extends Activity {
                     return;
                 }
 
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) {
+                    etNewValue.setError("Format email tidak valid");
+                    return;
+                }
+
+                if (newEmail.equalsIgnoreCase(currentEmail)) {
+                    etNewValue.setError("Email baru sama dengan email sebelumnya");
+                    return;
+                }
+
                 dialog.dismiss();
-                new ProfileTask("update_email").execute(newEmail);
+
+                Intent intent = new Intent(ProfileActivity.this, ValidateProfileEmailActivity.class);
+                intent.putExtra("user_id", userId);
+                intent.putExtra("old_email", currentEmail);
+                intent.putExtra("new_email", newEmail);
+                startActivity(intent);
             });
         });
 
@@ -536,18 +577,219 @@ public class ProfileActivity extends Activity {
     }
 
     private void showChangePhoneDialog() {
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_change_single_input, null);
+        LinearLayout root = new LinearLayout(ProfileActivity.this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dpToPx(20), dpToPx(8), dpToPx(20), 0);
 
-        TextView tvOldValue = view.findViewById(R.id.tvOldValue);
-        EditText etNewValue = view.findViewById(R.id.etNewValue);
+        TextView tvOldValue = new TextView(ProfileActivity.this);
+        tvOldValue.setTextColor(Color.BLACK);
+        tvOldValue.setTextSize(14);
+        tvOldValue.setText("No telp sebelumnya: " + formatPhoneDisplay(currentPhone));
 
-        tvOldValue.setText("No telp sebelumnya: " + currentPhone);
-        etNewValue.setHint("Masukkan no telp baru");
-        etNewValue.setInputType(InputType.TYPE_CLASS_PHONE);
+        LinearLayout phoneContainer = new LinearLayout(ProfileActivity.this);
+        phoneContainer.setOrientation(LinearLayout.HORIZONTAL);
+        phoneContainer.setGravity(Gravity.CENTER_VERTICAL);
+        phoneContainer.setPadding(dpToPx(12), dpToPx(4), dpToPx(12), dpToPx(4));
+        phoneContainer.setBackgroundResource(R.drawable.bg_input);
+
+        LinearLayout.LayoutParams phoneContainerParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(52)
+        );
+        phoneContainerParams.setMargins(0, dpToPx(12), 0, 0);
+        phoneContainer.setLayoutParams(phoneContainerParams);
+
+        TextView tvPrefix = new TextView(ProfileActivity.this);
+        tvPrefix.setText("+62");
+        tvPrefix.setTextColor(Color.BLACK);
+        tvPrefix.setTextSize(15);
+        tvPrefix.setGravity(Gravity.CENTER_VERTICAL);
+
+        EditText etPhone = new EditText(ProfileActivity.this);
+        etPhone.setLayoutParams(new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                1
+        ));
+        etPhone.setBackgroundColor(Color.TRANSPARENT);
+        etPhone.setHint("81221222123");
+        etPhone.setInputType(InputType.TYPE_CLASS_PHONE);
+        etPhone.setTextColor(Color.BLACK);
+        etPhone.setTextSize(15);
+        etPhone.setSingleLine(true);
+        etPhone.setPadding(dpToPx(8), 0, 0, 0);
+
+        phoneContainer.addView(tvPrefix);
+        phoneContainer.addView(etPhone);
+
+        root.addView(tvOldValue);
+        root.addView(phoneContainer);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Change No Telp")
-                .setView(view)
+                .setView(root)
+                .setPositiveButton("Lanjut", null)
+                .setNegativeButton("Batal", null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            Button btnSave = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+            btnSave.setOnClickListener(v -> {
+                String newPhone = etPhone.getText().toString().trim();
+                newPhone = normalizePhoneForServer(newPhone);
+
+                if (newPhone.isEmpty()) {
+                    etPhone.setError("No telp baru harus diisi");
+                    return;
+                }
+
+                if (newPhone.length() < 8) {
+                    etPhone.setError("No telp terlalu pendek");
+                    return;
+                }
+
+                if (newPhone.equals(normalizePhoneForServer(currentPhone))) {
+                    etPhone.setError("No telp baru sama dengan sebelumnya");
+                    return;
+                }
+
+                dialog.dismiss();
+
+                Intent intent = new Intent(ProfileActivity.this, ValidateProfilePhoneActivity.class);
+                intent.putExtra("user_id", userId);
+                intent.putExtra("old_phone", currentPhone);
+                intent.putExtra("new_phone", newPhone);
+                startActivity(intent);
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void showChangeAddressDialog() {
+        addressSuggestions.clear();
+        selectedValidAddress = "";
+        isAddressValid = false;
+        isSelectingAddress = false;
+
+        LinearLayout layout = new LinearLayout(ProfileActivity.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dpToPx(20), dpToPx(8), dpToPx(20), 0);
+
+        TextView tvOldValue = new TextView(ProfileActivity.this);
+        tvOldValue.setTextColor(Color.BLACK);
+        tvOldValue.setTextSize(14);
+
+        String oldAddress = currentAddress;
+
+        if (oldAddress == null || oldAddress.trim().equals("") || oldAddress.equals("null")) {
+            oldAddress = "Belum ada alamat";
+        }
+
+        tvOldValue.setText("Alamat sebelumnya:\n" + oldAddress);
+
+        AutoCompleteTextView etNewAddress = new AutoCompleteTextView(ProfileActivity.this);
+        etNewAddress.setHint("Masukkan alamat baru");
+        etNewAddress.setTextColor(Color.BLACK);
+        etNewAddress.setTextSize(14);
+        etNewAddress.setSingleLine(false);
+        etNewAddress.setMinLines(2);
+        etNewAddress.setMaxLines(4);
+        etNewAddress.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        etNewAddress.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8));
+        etNewAddress.setThreshold(3);
+        etNewAddress.setDropDownHeight(dpToPx(220));
+        etNewAddress.setDropDownVerticalOffset(dpToPx(4));
+
+        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+
+        inputParams.setMargins(0, dpToPx(12), 0, 0);
+        etNewAddress.setLayoutParams(inputParams);
+
+        activeAddressInput = etNewAddress;
+        addressAdapter = new AddressSuggestionAdapter();
+        etNewAddress.setAdapter(addressAdapter);
+
+        etNewAddress.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < 0 || position >= addressSuggestions.size()) return;
+
+            isSelectingAddress = true;
+
+            String selectedAddress = addressSuggestions.get(position);
+
+            selectedValidAddress = selectedAddress;
+            isAddressValid = true;
+
+            etNewAddress.setText(selectedAddress);
+            etNewAddress.setSelection(selectedAddress.length());
+            etNewAddress.setError(null);
+            etNewAddress.dismissDropDown();
+
+            isSelectingAddress = false;
+        });
+
+        etNewAddress.setOnClickListener(v -> {
+            if (!addressSuggestions.isEmpty()) {
+                etNewAddress.showDropDown();
+            }
+        });
+
+        etNewAddress.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && !addressSuggestions.isEmpty()) {
+                etNewAddress.showDropDown();
+            }
+        });
+
+        etNewAddress.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isSelectingAddress) {
+                    return;
+                }
+
+                String keyword = s.toString().trim();
+
+                if (!keyword.equals(selectedValidAddress)) {
+                    isAddressValid = false;
+                }
+
+                if (addressRunnable != null) {
+                    addressHandler.removeCallbacks(addressRunnable);
+                }
+
+                if (keyword.length() < 3) {
+                    addressSuggestions.clear();
+                    addressAdapter.notifyDataSetChanged();
+                    etNewAddress.dismissDropDown();
+
+                    isAddressValid = false;
+                    selectedValidAddress = "";
+                    return;
+                }
+
+                addressRunnable = () -> new AddressAutocompleteTask(etNewAddress).execute(keyword);
+                addressHandler.postDelayed(addressRunnable, 500);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        layout.addView(tvOldValue);
+        layout.addView(etNewAddress);
+
+        AlertDialog dialog = new AlertDialog.Builder(ProfileActivity.this)
+                .setTitle("Change Address")
+                .setView(layout)
                 .setPositiveButton("Simpan", null)
                 .setNegativeButton("Batal", null)
                 .create();
@@ -556,19 +798,274 @@ public class ProfileActivity extends Activity {
             Button btnSave = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
 
             btnSave.setOnClickListener(v -> {
-                String newPhone = etNewValue.getText().toString().trim();
+                String newAddress = etNewAddress.getText().toString().trim();
 
-                if (newPhone.isEmpty()) {
-                    etNewValue.setError("No telp baru harus diisi");
+                if (newAddress.isEmpty()) {
+                    etNewAddress.setError("Alamat baru harus diisi");
+                    return;
+                }
+
+                if (!isAddressValid || !newAddress.equals(selectedValidAddress)) {
+                    etNewAddress.setError("Alamat tidak valid");
+                    Toast.makeText(
+                            ProfileActivity.this,
+                            "Alamat tidak valid. Pilih alamat dari rekomendasi.",
+                            Toast.LENGTH_LONG
+                    ).show();
                     return;
                 }
 
                 dialog.dismiss();
-                new ProfileTask("update_phone").execute(newPhone);
+                new ProfileTask("update_address").execute(newAddress);
             });
         });
 
+        dialog.setOnDismissListener(d -> {
+            if (addressRunnable != null) {
+                addressHandler.removeCallbacks(addressRunnable);
+            }
+
+            addressSuggestions.clear();
+            selectedValidAddress = "";
+            isAddressValid = false;
+            isSelectingAddress = false;
+            activeAddressInput = null;
+        });
+
         dialog.show();
+    }
+
+    private class AddressSuggestionAdapter extends BaseAdapter implements Filterable {
+
+        @Override
+        public int getCount() {
+            return addressSuggestions.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return addressSuggestions.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            TextView tv = new TextView(ProfileActivity.this);
+
+            tv.setText(addressSuggestions.get(position));
+            tv.setTextColor(Color.BLACK);
+            tv.setTextSize(13);
+            tv.setBackgroundColor(Color.WHITE);
+            tv.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+            tv.setMinHeight(dpToPx(54));
+            tv.setSingleLine(false);
+            tv.setMaxLines(3);
+
+            return tv;
+        }
+
+        @Override
+        public Filter getFilter() {
+            return new Filter() {
+                @Override
+                protected FilterResults performFiltering(CharSequence constraint) {
+                    FilterResults results = new FilterResults();
+                    results.values = addressSuggestions;
+                    results.count = addressSuggestions.size();
+                    return results;
+                }
+
+                @Override
+                protected void publishResults(CharSequence constraint, FilterResults results) {
+                    notifyDataSetChanged();
+                }
+            };
+        }
+    }
+
+    private class AddressAutocompleteTask extends AsyncTask<String, Void, ArrayList<String>> {
+
+        private String errorMessage = "";
+        private final AutoCompleteTextView targetInput;
+
+        AddressAutocompleteTask(AutoCompleteTextView targetInput) {
+            this.targetInput = targetInput;
+        }
+
+        @Override
+        protected ArrayList<String> doInBackground(String... params) {
+            ArrayList<String> suggestions = new ArrayList<>();
+            HttpURLConnection conn = null;
+
+            try {
+                String input = params[0];
+
+                URL url = new URL(CONNECTOR_URL);
+                conn = (HttpURLConnection) url.openConnection();
+
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+
+                String postData =
+                        URLEncoder.encode("action", "UTF-8") + "=" +
+                                URLEncoder.encode("address_autocomplete", "UTF-8") + "&" +
+                                URLEncoder.encode("input", "UTF-8") + "=" +
+                                URLEncoder.encode(input, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+
+                os.close();
+
+                BufferedReader reader;
+
+                if (conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+                    reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                } else {
+                    reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                }
+
+                StringBuilder result = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+
+                reader.close();
+
+                String response = result.toString();
+
+                if (response.trim().isEmpty()) {
+                    errorMessage = "Response server kosong";
+                    return suggestions;
+                }
+
+                JSONObject jsonObject = new JSONObject(response);
+
+                if (jsonObject.optBoolean("success", false)) {
+                    JSONArray arr = jsonObject.optJSONArray("suggestions");
+
+                    if (arr != null) {
+                        for (int i = 0; i < arr.length(); i++) {
+                            suggestions.add(arr.getString(i));
+                        }
+                    }
+                } else {
+                    errorMessage = jsonObject.optString("message", "Gagal mengambil rekomendasi alamat");
+                }
+
+            } catch (Exception e) {
+                errorMessage = e.getMessage();
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
+            }
+
+            return suggestions;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<String> suggestions) {
+            if (targetInput != activeAddressInput) {
+                return;
+            }
+
+            addressSuggestions.clear();
+            addressSuggestions.addAll(suggestions);
+
+            if (addressAdapter != null) {
+                addressAdapter.notifyDataSetChanged();
+            }
+
+            String currentInput = targetInput.getText().toString().trim();
+
+            boolean exactMatch = false;
+
+            for (String item : suggestions) {
+                if (item.equalsIgnoreCase(currentInput)) {
+                    exactMatch = true;
+                    selectedValidAddress = item;
+                    isAddressValid = true;
+                    break;
+                }
+            }
+
+            if (!exactMatch && !currentInput.equals(selectedValidAddress)) {
+                isAddressValid = false;
+            }
+
+            if (!suggestions.isEmpty() && targetInput.hasFocus()) {
+                targetInput.postDelayed(() -> {
+                    if (targetInput == activeAddressInput) {
+                        targetInput.requestFocus();
+                        targetInput.showDropDown();
+                    }
+                }, 200);
+            } else {
+                targetInput.dismissDropDown();
+
+                isAddressValid = false;
+                selectedValidAddress = "";
+
+                if (!errorMessage.equals("")) {
+                    Toast.makeText(ProfileActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                } else {
+                    targetInput.setError("Alamat tidak ditemukan");
+                    Toast.makeText(
+                            ProfileActivity.this,
+                            "Alamat tidak ditemukan",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+        }
+    }
+
+    private String normalizePhoneForServer(String phone) {
+        if (phone == null) {
+            return "";
+        }
+
+        String clean = phone.trim();
+        clean = clean.replace(" ", "")
+                .replace("-", "")
+                .replace("(", "")
+                .replace(")", "");
+
+        clean = clean.replaceAll("[^0-9+]", "");
+
+        if (clean.startsWith("+62")) {
+            clean = clean.substring(3);
+        } else if (clean.startsWith("62")) {
+            clean = clean.substring(2);
+        } else if (clean.startsWith("0")) {
+            clean = clean.substring(1);
+        }
+
+        return clean;
+    }
+
+    private String formatPhoneDisplay(String phone) {
+        String clean = normalizePhoneForServer(phone);
+
+        if (clean.isEmpty()) {
+            return "+62";
+        }
+
+        return "+62 " + clean;
     }
 
     private void showChangeProfileNameDialog() {
@@ -577,12 +1074,12 @@ public class ProfileActivity extends Activity {
         TextView tvOldValue = view.findViewById(R.id.tvOldValue);
         EditText etNewValue = view.findViewById(R.id.etNewValue);
 
-        tvOldValue.setText("Profile name sebelumnya: " + currentProfileName);
-        etNewValue.setHint("Masukkan profile name baru");
+        tvOldValue.setText("Display name sebelumnya: " + currentProfileName);
+        etNewValue.setHint("Masukkan display name baru");
         etNewValue.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Profile Name")
+                .setTitle("Change Display Name")
                 .setView(view)
                 .setPositiveButton("Simpan", null)
                 .setNegativeButton("Batal", null)
@@ -595,7 +1092,7 @@ public class ProfileActivity extends Activity {
                 String newName = etNewValue.getText().toString().trim();
 
                 if (newName.isEmpty()) {
-                    etNewValue.setError("Profile name harus diisi");
+                    etNewValue.setError("Display name harus diisi");
                     return;
                 }
 
@@ -752,6 +1249,9 @@ public class ProfileActivity extends Activity {
                 } else if (action.equals("update_profile_name")) {
                     postData.append("&profile_name=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+                } else if (action.equals("update_address")) {
+                    postData.append("&alamat=")
+                            .append(URLEncoder.encode(data[0], "UTF-8"));
                 } else if (action.equals("update_username")) {
                     postData.append("&nama=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
@@ -815,12 +1315,19 @@ public class ProfileActivity extends Activity {
                         currentEmail = jsonObject.optString("email", "");
                         currentPhone = jsonObject.optString("no_hp", "");
                         currentProfileName = jsonObject.optString("profile_name", "");
+                        currentAddress = jsonObject.optString("alamat", "");
 
                         if (currentProfileName.equals("") || currentProfileName.equals("null")) {
                             currentProfileName = currentUsername;
                         }
 
                         tvProfileName.setText(currentProfileName);
+
+                        SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
+                        editor.putString("nama", currentUsername);
+                        editor.putString("profile_name", currentProfileName);
+                        editor.putString("alamat", currentAddress);
+                        editor.apply();
 
                         currentProfilePicture = jsonObject.optString("profile_picture", "");
                         loadProfilePicture(currentProfilePicture);
@@ -980,9 +1487,10 @@ public class ProfileActivity extends Activity {
 
     private void setUploadUiEnabled(boolean enabled) {
         imgProfile.setEnabled(enabled);
+        tvProfileName.setEnabled(enabled);
         btnChangeEmail.setEnabled(enabled);
         btnChangePhone.setEnabled(enabled);
-        btnChangeProfileName.setEnabled(enabled);
+        btnChangeAddress.setEnabled(enabled);
         btnChangeUsername.setEnabled(enabled);
         btnChangePassword.setEnabled(enabled);
         btnKeluar.setEnabled(enabled);

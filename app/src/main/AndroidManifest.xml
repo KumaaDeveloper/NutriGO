@@ -3,11 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
@@ -21,75 +19,72 @@
         android:theme="@style/Theme.PeduliMakanan"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".ValidateProfilePhoneActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ValidateProfileEmailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ValidatePhoneActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ValidateEmailActivity"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
-
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
-
         </provider>
 
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
-
         <activity
             android:name=".SplashActivity"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
-
         <activity
             android:name=".LoginActivity"
             android:exported="false" />
-
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
-
         <activity
             android:name=".ForgotPasswordActivity"
             android:exported="false" />
-
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
-
         <activity
             android:name=".StoreDetailActivity"
             android:exported="false" />
-
         <activity
             android:name=".CartActivity"
             android:exported="false" />
-
         <activity
             android:name=".TransactionActivity"
             android:exported="false" />
-
         <activity
             android:name=".TransactionDetailActivity"
             android:exported="false" />
-
         <activity
             android:name=".FavoriteActivity"
             android:exported="false" />
-
         <activity
             android:name=".ProfileActivity"
             android:exported="false" />
-
     </application>
 
 </manifest>

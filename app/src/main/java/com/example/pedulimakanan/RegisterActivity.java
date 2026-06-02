@@ -2,14 +2,30 @@ package com.example.pedulimakanan;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.AutoCompleteTextView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -20,6 +36,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 
 public class RegisterActivity extends Activity {
 
@@ -30,15 +47,35 @@ public class RegisterActivity extends Activity {
     private static final String KEY_LAST_PASSWORD = "last_password";
     private static final String KEY_HAS_LAST_REGISTER = "has_last_register";
 
-    private EditText etNamaRegister, etEmailRegister, etPhoneRegister, etAlamatRegister,
-            etPasswordRegister, etConfirmRegister;
+    private static final String KEY_LAST_REGISTER_TIME = "last_register_time";
+
+    private EditText etNamaRegister;
+    private EditText etEmailRegister;
+    private EditText etPhoneRegister;
+    private AutoCompleteTextView etAlamatRegister;
+    private EditText etPasswordRegister;
+    private EditText etConfirmRegister;
 
     private boolean passwordVisible = false;
     private boolean confirmVisible = false;
 
+    private final Handler addressHandler = new Handler(Looper.getMainLooper());
+    private Runnable addressRunnable;
+
+    private boolean isSelectingAddress = false;
+    private boolean isAddressValid = false;
+    private String selectedValidAddress = "";
+    private int addressRequestCode = 0;
+
+    private AddressSuggestionAdapter addressAdapter;
+    private final ArrayList<String> addressSuggestions = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        allowScreenRecord();
+
         setContentView(R.layout.activity_register);
 
         ImageButton btnBackRegister = findViewById(R.id.btnBackRegister);
@@ -69,6 +106,8 @@ public class RegisterActivity extends Activity {
             togglePassword(etConfirmRegister, btnEyeConfirmRegister, confirmVisible);
         });
 
+        setupAddressAutocomplete();
+
         btnDaftar.setOnClickListener(v -> {
             String nama = etNamaRegister.getText().toString().trim();
             String email = etEmailRegister.getText().toString().trim();
@@ -94,6 +133,16 @@ public class RegisterActivity extends Activity {
 
             if (alamat.isEmpty()) {
                 etAlamatRegister.setError(getString(R.string.alamat_harus_diisi));
+                return;
+            }
+
+            if (!isAddressValid || selectedValidAddress.isEmpty() || !alamat.equals(selectedValidAddress)) {
+                etAlamatRegister.setError("Alamat tidak valid");
+                Toast.makeText(
+                        RegisterActivity.this,
+                        "Alamat tidak valid. Pilih alamat dari rekomendasi Geoapify.",
+                        Toast.LENGTH_LONG
+                ).show();
                 return;
             }
 
@@ -124,6 +173,295 @@ public class RegisterActivity extends Activity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        allowScreenRecord();
+    }
+
+    private void allowScreenRecord() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    }
+
+    private void setupAddressAutocomplete() {
+        addressAdapter = new AddressSuggestionAdapter();
+
+        etAlamatRegister.setAdapter(addressAdapter);
+        etAlamatRegister.setThreshold(3);
+        etAlamatRegister.setDropDownHeight(dpToPx(240));
+        etAlamatRegister.setDropDownVerticalOffset(dpToPx(4));
+
+        etAlamatRegister.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus && addressSuggestions.size() > 0) {
+                etAlamatRegister.showDropDown();
+            }
+        });
+
+        etAlamatRegister.setOnClickListener(v -> {
+            if (addressSuggestions.size() > 0) {
+                etAlamatRegister.showDropDown();
+            }
+        });
+
+        etAlamatRegister.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < 0 || position >= addressSuggestions.size()) {
+                return;
+            }
+
+            if (addressRunnable != null) {
+                addressHandler.removeCallbacks(addressRunnable);
+            }
+
+            addressRequestCode++;
+
+            String selectedAddress = addressSuggestions.get(position);
+
+            isSelectingAddress = true;
+
+            selectedValidAddress = selectedAddress;
+            isAddressValid = true;
+
+            etAlamatRegister.setText(selectedAddress, false);
+            etAlamatRegister.setSelection(selectedAddress.length());
+            etAlamatRegister.setError(null);
+            etAlamatRegister.dismissDropDown();
+
+            isSelectingAddress = false;
+        });
+
+        etAlamatRegister.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isSelectingAddress) {
+                    return;
+                }
+
+                String keyword = s.toString().trim();
+
+                if (!keyword.equals(selectedValidAddress)) {
+                    isAddressValid = false;
+                    selectedValidAddress = "";
+                    etAlamatRegister.setError(null);
+                }
+
+                if (addressRunnable != null) {
+                    addressHandler.removeCallbacks(addressRunnable);
+                }
+
+                addressRequestCode++;
+
+                if (keyword.length() < 3) {
+                    addressSuggestions.clear();
+                    addressAdapter.notifyDataSetChanged();
+                    etAlamatRegister.dismissDropDown();
+                    return;
+                }
+
+                int currentRequestCode = addressRequestCode;
+
+                addressRunnable = () -> new AddressAutocompleteTask(keyword, currentRequestCode).execute();
+                addressHandler.postDelayed(addressRunnable, 500);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+    }
+
+    private class AddressSuggestionAdapter extends BaseAdapter implements Filterable {
+
+        @Override
+        public int getCount() {
+            return addressSuggestions.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return addressSuggestions.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            TextView tv = new TextView(RegisterActivity.this);
+
+            tv.setText(addressSuggestions.get(position));
+            tv.setTextColor(Color.BLACK);
+            tv.setTextSize(13);
+            tv.setBackgroundColor(Color.WHITE);
+            tv.setPadding(dpToPx(14), dpToPx(10), dpToPx(14), dpToPx(10));
+            tv.setMinHeight(dpToPx(54));
+            tv.setSingleLine(false);
+            tv.setMaxLines(3);
+
+            return tv;
+        }
+
+        @Override
+        public Filter getFilter() {
+            return new Filter() {
+                @Override
+                protected FilterResults performFiltering(CharSequence constraint) {
+                    FilterResults results = new FilterResults();
+                    results.values = addressSuggestions;
+                    results.count = addressSuggestions.size();
+                    return results;
+                }
+
+                @Override
+                protected void publishResults(CharSequence constraint, FilterResults results) {
+                    notifyDataSetChanged();
+                }
+            };
+        }
+    }
+
+    private class AddressAutocompleteTask extends AsyncTask<Void, Void, ArrayList<String>> {
+
+        private final String requestedInput;
+        private final int requestCode;
+        private String errorMessage = "";
+
+        AddressAutocompleteTask(String requestedInput, int requestCode) {
+            this.requestedInput = requestedInput;
+            this.requestCode = requestCode;
+        }
+
+        @Override
+        protected ArrayList<String> doInBackground(Void... voids) {
+            ArrayList<String> suggestions = new ArrayList<>();
+            HttpURLConnection conn = null;
+
+            try {
+                URL url = new URL(CONNECTOR_URL);
+                conn = (HttpURLConnection) url.openConnection();
+
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+
+                String postData =
+                        URLEncoder.encode("action", "UTF-8") + "=" +
+                                URLEncoder.encode("address_autocomplete", "UTF-8") + "&" +
+                                URLEncoder.encode("input", "UTF-8") + "=" +
+                                URLEncoder.encode(requestedInput, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+
+                os.close();
+
+                BufferedReader reader;
+
+                if (conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+                    reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                } else {
+                    reader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                }
+
+                StringBuilder result = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+
+                reader.close();
+
+                String response = result.toString();
+
+                if (response.trim().isEmpty()) {
+                    errorMessage = "Response server kosong";
+                    return suggestions;
+                }
+
+                JSONObject jsonObject = new JSONObject(response);
+
+                if (jsonObject.optBoolean("success", false)) {
+                    JSONArray arr = jsonObject.optJSONArray("suggestions");
+
+                    if (arr != null) {
+                        for (int i = 0; i < arr.length(); i++) {
+                            suggestions.add(arr.getString(i));
+                        }
+                    }
+                } else {
+                    errorMessage = jsonObject.optString("message", "Gagal mengambil rekomendasi alamat");
+                }
+
+            } catch (Exception e) {
+                errorMessage = e.getMessage() == null ? "Gagal mengambil alamat" : e.getMessage();
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
+            }
+
+            return suggestions;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<String> suggestions) {
+            String currentInput = etAlamatRegister.getText().toString().trim();
+
+            if (requestCode != addressRequestCode) {
+                return;
+            }
+
+            if (!currentInput.equals(requestedInput)) {
+                return;
+            }
+
+            if (currentInput.equals(selectedValidAddress) && isAddressValid) {
+                return;
+            }
+
+            addressSuggestions.clear();
+            addressSuggestions.addAll(suggestions);
+            addressAdapter.notifyDataSetChanged();
+
+            if (!suggestions.isEmpty() && etAlamatRegister.hasFocus()) {
+                etAlamatRegister.postDelayed(() -> {
+                    if (requestCode == addressRequestCode && etAlamatRegister.hasFocus()) {
+                        etAlamatRegister.showDropDown();
+                    }
+                }, 150);
+            } else {
+                etAlamatRegister.dismissDropDown();
+
+                if (!errorMessage.equals("")) {
+                    Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                } else if (currentInput.length() >= 3) {
+                    etAlamatRegister.setError("Alamat tidak ditemukan");
+                    Toast.makeText(
+                            RegisterActivity.this,
+                            "Alamat tidak ditemukan di Geoapify",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            }
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
     private boolean isPasswordValid(String password) {
         return password.matches("^(?=.*[A-Z])(?=.*\\d).{8,}$");
     }
@@ -147,6 +485,7 @@ public class RegisterActivity extends Activity {
                 .putBoolean(KEY_HAS_LAST_REGISTER, true)
                 .putString(KEY_LAST_NAMA, nama)
                 .putString(KEY_LAST_PASSWORD, password)
+                .putLong(KEY_LAST_REGISTER_TIME, System.currentTimeMillis())
                 .apply();
     }
 
@@ -187,12 +526,18 @@ public class RegisterActivity extends Activity {
                 conn.setReadTimeout(15000);
 
                 String postData =
-                        URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("register", "UTF-8") + "&" +
-                                URLEncoder.encode("nama", "UTF-8") + "=" + URLEncoder.encode(nama, "UTF-8") + "&" +
-                                URLEncoder.encode("email", "UTF-8") + "=" + URLEncoder.encode(email, "UTF-8") + "&" +
-                                URLEncoder.encode("no_hp", "UTF-8") + "=" + URLEncoder.encode(noHp, "UTF-8") + "&" +
-                                URLEncoder.encode("alamat", "UTF-8") + "=" + URLEncoder.encode(alamat, "UTF-8") + "&" +
-                                URLEncoder.encode("password", "UTF-8") + "=" + URLEncoder.encode(password, "UTF-8");
+                        URLEncoder.encode("action", "UTF-8") + "=" +
+                                URLEncoder.encode("register_pending", "UTF-8") + "&" +
+                                URLEncoder.encode("nama", "UTF-8") + "=" +
+                                URLEncoder.encode(nama, "UTF-8") + "&" +
+                                URLEncoder.encode("email", "UTF-8") + "=" +
+                                URLEncoder.encode(email, "UTF-8") + "&" +
+                                URLEncoder.encode("no_hp", "UTF-8") + "=" +
+                                URLEncoder.encode(noHp, "UTF-8") + "&" +
+                                URLEncoder.encode("alamat", "UTF-8") + "=" +
+                                URLEncoder.encode(alamat, "UTF-8") + "&" +
+                                URLEncoder.encode("password", "UTF-8") + "=" +
+                                URLEncoder.encode(password, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
 
@@ -242,21 +587,33 @@ public class RegisterActivity extends Activity {
                 if (success) {
                     saveLastRegisterData(savedNama, savedPassword);
 
-                    new AlertDialog.Builder(RegisterActivity.this)
-                            .setTitle(getString(R.string.berhasil))
-                            .setMessage("Akun berhasil dibuat! Silakan login.")
-                            .setPositiveButton(getString(R.string.tutup), (dialog, which) -> {
-                                dialog.dismiss();
-                                finish();
-                            })
-                            .show();
+                    int pendingId = jsonObject.optInt("pending_id", 0);
+                    String email = jsonObject.optString("email", "");
+                    String noHp = jsonObject.optString("no_hp", "");
+                    String nextStep = jsonObject.optString("next_step", "email");
+
+                    Intent intent;
+
+                    if (nextStep.equals("phone")) {
+                        intent = new Intent(RegisterActivity.this, ValidatePhoneActivity.class);
+                    } else {
+                        intent = new Intent(RegisterActivity.this, ValidateEmailActivity.class);
+                    }
+
+                    intent.putExtra("pending_id", pendingId);
+                    intent.putExtra("email", email);
+                    intent.putExtra("no_hp", noHp);
+                    startActivity(intent);
 
                 } else {
                     showDialog(getString(R.string.register_gagal), message);
                 }
 
             } catch (Exception e) {
-                showDialog(getString(R.string.register_gagal), "Response server tidak valid:\n" + response);
+                showDialog(
+                        getString(R.string.register_gagal),
+                        "Response server tidak valid:\n" + response
+                );
             }
         }
     }

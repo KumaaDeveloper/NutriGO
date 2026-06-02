@@ -6,10 +6,15 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONObject;
@@ -38,19 +43,36 @@ public class LoginActivity extends Activity {
     private static final String KEY_HAS_LAST_LOGIN = "has_last_login";
     private static final String KEY_LAST_LOGIN_NAMA = "last_login_nama";
     private static final String KEY_LAST_LOGIN_PASSWORD = "last_login_password";
+    private static final String KEY_LAST_LOGIN_TIME = "last_login_time";
+
+    private static final String LAST_REGISTER_PREF = "last_register_data";
+    private static final String KEY_HAS_LAST_REGISTER = "has_last_register";
+    private static final String KEY_LAST_REGISTER_NAMA = "last_nama";
+    private static final String KEY_LAST_REGISTER_PASSWORD = "last_password";
+    private static final String KEY_LAST_REGISTER_TIME = "last_register_time";
 
     private EditText etNamaLogin;
     private EditText etPasswordLogin;
 
+    private LinearLayout layoutLastAccountBox;
+    private TextView tvLastAccountTitle;
+    private TextView tvLastAccountName;
+
     private boolean passwordVisible = false;
-    private boolean lastLoginDialogShowing = false;
+    private boolean isAutoFilling = false;
 
     private String pendingLoginNama = "";
     private String pendingLoginPassword = "";
 
+    private String suggestedNama = "";
+    private String suggestedPassword = "";
+    private String suggestedType = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        allowScreenRecord();
 
         if (isUserAlreadyLogin()) {
             goToHomeFromSavedSession();
@@ -62,10 +84,16 @@ public class LoginActivity extends Activity {
         etNamaLogin = findViewById(R.id.etNamaLogin);
         etPasswordLogin = findViewById(R.id.etPasswordLogin);
 
+        layoutLastAccountBox = findViewById(R.id.layoutLastAccountBox);
+        tvLastAccountTitle = findViewById(R.id.tvLastAccountTitle);
+        tvLastAccountName = findViewById(R.id.tvLastAccountName);
+
         ImageButton btnEyeLogin = findViewById(R.id.btnEyeLogin);
         TextView tvLupaSandi = findViewById(R.id.tvLupaSandi);
         TextView tvDaftarSekarang = findViewById(R.id.tvDaftarSekarang);
         Button btnMasuk = findViewById(R.id.btnMasuk);
+
+        layoutLastAccountBox.setVisibility(View.GONE);
 
         btnEyeLogin.setImageResource(R.drawable.ic_eye_close);
         btnEyeLogin.setContentDescription(getString(R.string.tampilkan_password));
@@ -75,13 +103,7 @@ public class LoginActivity extends Activity {
             togglePassword(etPasswordLogin, btnEyeLogin, passwordVisible);
         });
 
-        etNamaLogin.setOnClickListener(v -> showLastLoginDialog());
-
-        etNamaLogin.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                showLastLoginDialog();
-            }
-        });
+        setupLastAccountSuggestion();
 
         tvLupaSandi.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
@@ -113,6 +135,173 @@ public class LoginActivity extends Activity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        allowScreenRecord();
+    }
+
+    private void allowScreenRecord() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    }
+
+    private void setupLastAccountSuggestion() {
+        View.OnFocusChangeListener focusListener = (v, hasFocus) -> {
+            if (hasFocus) {
+                updateLastAccountBox();
+            }
+        };
+
+        etNamaLogin.setOnFocusChangeListener(focusListener);
+        etPasswordLogin.setOnFocusChangeListener(focusListener);
+
+        etNamaLogin.setOnClickListener(v -> updateLastAccountBox());
+        etPasswordLogin.setOnClickListener(v -> updateLastAccountBox());
+
+        TextWatcher watcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isAutoFilling) {
+                    return;
+                }
+
+                if (isLoginInputEmpty()) {
+                    updateLastAccountBox();
+                } else {
+                    hideLastAccountBox();
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        };
+
+        etNamaLogin.addTextChangedListener(watcher);
+        etPasswordLogin.addTextChangedListener(watcher);
+
+        layoutLastAccountBox.setOnClickListener(v -> {
+            if (suggestedNama.isEmpty() || suggestedPassword.isEmpty()) {
+                return;
+            }
+
+            isAutoFilling = true;
+
+            etNamaLogin.setText(suggestedNama);
+            etPasswordLogin.setText(suggestedPassword);
+            etPasswordLogin.setSelection(etPasswordLogin.getText().length());
+
+            isAutoFilling = false;
+
+            hideLastAccountBox();
+        });
+    }
+
+    private boolean isLoginInputEmpty() {
+        return etNamaLogin.getText().toString().trim().isEmpty()
+                && etPasswordLogin.getText().toString().trim().isEmpty();
+    }
+
+    private boolean isLoginInputFocused() {
+        return etNamaLogin.hasFocus() || etPasswordLogin.hasFocus();
+    }
+
+    private void updateLastAccountBox() {
+        if (!isLoginInputEmpty()) {
+            hideLastAccountBox();
+            return;
+        }
+
+        if (!isLoginInputFocused()) {
+            hideLastAccountBox();
+            return;
+        }
+
+        if (loadLatestAccountSuggestion()) {
+            showLastAccountBox();
+        } else {
+            hideLastAccountBox();
+        }
+    }
+
+    private boolean loadLatestAccountSuggestion() {
+        SharedPreferences loginPrefs = getSharedPreferences(LAST_LOGIN_PREF, MODE_PRIVATE);
+        SharedPreferences registerPrefs = getSharedPreferences(LAST_REGISTER_PREF, MODE_PRIVATE);
+
+        boolean hasLastLogin = loginPrefs.getBoolean(KEY_HAS_LAST_LOGIN, false);
+        String lastLoginNama = loginPrefs.getString(KEY_LAST_LOGIN_NAMA, "");
+        String lastLoginPassword = loginPrefs.getString(KEY_LAST_LOGIN_PASSWORD, "");
+        long lastLoginTime = loginPrefs.getLong(KEY_LAST_LOGIN_TIME, 0);
+
+        boolean hasLastRegister = registerPrefs.getBoolean(KEY_HAS_LAST_REGISTER, false);
+        String lastRegisterNama = registerPrefs.getString(KEY_LAST_REGISTER_NAMA, "");
+        String lastRegisterPassword = registerPrefs.getString(KEY_LAST_REGISTER_PASSWORD, "");
+        long lastRegisterTime = registerPrefs.getLong(KEY_LAST_REGISTER_TIME, 0);
+
+        boolean loginValid = hasLastLogin
+                && !lastLoginNama.trim().isEmpty()
+                && !lastLoginPassword.trim().isEmpty();
+
+        boolean registerValid = hasLastRegister
+                && !lastRegisterNama.trim().isEmpty()
+                && !lastRegisterPassword.trim().isEmpty();
+
+        if (!loginValid && !registerValid) {
+            suggestedNama = "";
+            suggestedPassword = "";
+            suggestedType = "";
+            return false;
+        }
+
+        if (loginValid && !registerValid) {
+            setSuggestionLogin(lastLoginNama, lastLoginPassword);
+            return true;
+        }
+
+        if (!loginValid && registerValid) {
+            setSuggestionRegister(lastRegisterNama, lastRegisterPassword);
+            return true;
+        }
+
+        if (lastLoginTime >= lastRegisterTime) {
+            setSuggestionLogin(lastLoginNama, lastLoginPassword);
+        } else {
+            setSuggestionRegister(lastRegisterNama, lastRegisterPassword);
+        }
+
+        return true;
+    }
+
+    private void setSuggestionLogin(String nama, String password) {
+        suggestedNama = nama;
+        suggestedPassword = password;
+        suggestedType = "login";
+
+        tvLastAccountTitle.setText("Akun terakhir login");
+        tvLastAccountName.setText(nama);
+    }
+
+    private void setSuggestionRegister(String nama, String password) {
+        suggestedNama = nama;
+        suggestedPassword = password;
+        suggestedType = "register";
+
+        tvLastAccountTitle.setText("Akun terakhir daftar");
+        tvLastAccountName.setText(nama);
+    }
+
+    private void showLastAccountBox() {
+        layoutLastAccountBox.setVisibility(View.VISIBLE);
+    }
+
+    private void hideLastAccountBox() {
+        layoutLastAccountBox.setVisibility(View.GONE);
+    }
+
     private boolean isUserAlreadyLogin() {
         SharedPreferences sharedPreferences = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         return sharedPreferences.getBoolean(KEY_IS_LOGIN, false);
@@ -128,11 +317,18 @@ public class LoginActivity extends Activity {
 
         if (userId == -1) {
             clearLoginSession();
-            setContentView(R.layout.activity_login);
+            recreateLoginPage();
             return;
         }
 
         goToHome(userId, nama, email, noHp);
+    }
+
+    private void recreateLoginPage() {
+        Intent intent = new Intent(LoginActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void saveLoginSession(int userId, String nama, String email, String noHp) {
@@ -159,49 +355,8 @@ public class LoginActivity extends Activity {
                 .putBoolean(KEY_HAS_LAST_LOGIN, true)
                 .putString(KEY_LAST_LOGIN_NAMA, nama)
                 .putString(KEY_LAST_LOGIN_PASSWORD, password)
+                .putLong(KEY_LAST_LOGIN_TIME, System.currentTimeMillis())
                 .apply();
-    }
-
-    private void showLastLoginDialog() {
-        if (lastLoginDialogShowing) {
-            return;
-        }
-
-        SharedPreferences prefs = getSharedPreferences(LAST_LOGIN_PREF, MODE_PRIVATE);
-
-        boolean hasLastLogin = prefs.getBoolean(KEY_HAS_LAST_LOGIN, false);
-        String lastNama = prefs.getString(KEY_LAST_LOGIN_NAMA, "");
-        String lastPassword = prefs.getString(KEY_LAST_LOGIN_PASSWORD, "");
-
-        if (!hasLastLogin || lastNama.trim().isEmpty() || lastPassword.trim().isEmpty()) {
-            return;
-        }
-
-        if (!etNamaLogin.getText().toString().trim().isEmpty()
-                || !etPasswordLogin.getText().toString().trim().isEmpty()) {
-            return;
-        }
-
-        lastLoginDialogShowing = true;
-
-        new AlertDialog.Builder(LoginActivity.this)
-                .setTitle("Akun terakhir login")
-                .setMessage("Lanjut menggunakan akun: " + lastNama + "?")
-                .setNegativeButton("Tidak", (dialog, which) -> {
-                    dialog.dismiss();
-                    lastLoginDialogShowing = false;
-                })
-                .setPositiveButton("Lanjut", (dialog, which) -> {
-                    dialog.dismiss();
-
-                    etNamaLogin.setText(lastNama);
-                    etPasswordLogin.setText(lastPassword);
-                    etPasswordLogin.setSelection(etPasswordLogin.getText().length());
-
-                    lastLoginDialogShowing = false;
-                })
-                .setOnCancelListener(dialog -> lastLoginDialogShowing = false)
-                .show();
     }
 
     private void showSaveLoginConfirmation(int userId, String nama, String email, String noHp) {
@@ -272,9 +427,12 @@ public class LoginActivity extends Activity {
                 conn.setReadTimeout(15000);
 
                 String postData =
-                        URLEncoder.encode("action", "UTF-8") + "=" + URLEncoder.encode("login", "UTF-8") + "&" +
-                                URLEncoder.encode("nama", "UTF-8") + "=" + URLEncoder.encode(nama, "UTF-8") + "&" +
-                                URLEncoder.encode("password", "UTF-8") + "=" + URLEncoder.encode(password, "UTF-8");
+                        URLEncoder.encode("action", "UTF-8") + "=" +
+                                URLEncoder.encode("login", "UTF-8") + "&" +
+                                URLEncoder.encode("nama", "UTF-8") + "=" +
+                                URLEncoder.encode(nama, "UTF-8") + "&" +
+                                URLEncoder.encode("password", "UTF-8") + "=" +
+                                URLEncoder.encode(password, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
 

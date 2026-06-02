@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Peduli Makanan</string>
+    <string name="app_name">NutriGO</string>
 
     <string name="kembali">Kembali</string>
     <string name="email">Email</string>
