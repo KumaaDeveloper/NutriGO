@@ -7,6 +7,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
 
 public class FavoriteActivity extends Activity {
@@ -99,13 +100,45 @@ public class FavoriteActivity extends Activity {
             return;
         }
 
+        LinearLayout currentRow = null;
+        int itemCount = 0;
+
         do {
             int restoId = c.getInt(c.getColumnIndexOrThrow("id"));
             String namaResto = c.getString(c.getColumnIndexOrThrow("nama_resto"));
             String kategori = c.getString(c.getColumnIndexOrThrow("kategori"));
 
+            if (itemCount % 2 == 0) {
+                currentRow = new LinearLayout(this);
+                currentRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+                rowParams.setMargins(0, 0, 0, dpToPx(12));
+                currentRow.setLayoutParams(rowParams);
+
+                llFavoriteContainer.addView(currentRow);
+            }
+
             View card = LayoutInflater.from(this)
-                    .inflate(R.layout.item_restaurant_card, llFavoriteContainer, false);
+                    .inflate(R.layout.item_restaurant_card, currentRow, false);
+
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f
+            );
+
+            if (itemCount % 2 == 0) {
+                cardParams.setMargins(0, 0, dpToPx(6), 0);
+            } else {
+                cardParams.setMargins(dpToPx(6), 0, 0, 0);
+            }
+
+            card.setLayoutParams(cardParams);
 
             TextView tvNama = card.findViewById(R.id.tvNamaResto);
             TextView tvKat = card.findViewById(R.id.tvKategori);
@@ -123,6 +156,7 @@ public class FavoriteActivity extends Activity {
 
                 imgBtnFavorite.setOnClickListener(v -> {
                     db.toggleFavorit(userId, restoId);
+
                     Toast.makeText(
                             FavoriteActivity.this,
                             namaResto + " dihapus dari favorit",
@@ -140,11 +174,34 @@ public class FavoriteActivity extends Activity {
                 startActivity(intent);
             });
 
-            llFavoriteContainer.addView(card);
+            if (currentRow != null) {
+                currentRow.addView(card);
+            }
+
+            itemCount++;
 
         } while (c.moveToNext());
 
         c.close();
+
+        if (itemCount % 2 != 0) {
+            View emptySpace = new View(this);
+
+            LinearLayout.LayoutParams emptyParams = new LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f
+            );
+
+            emptyParams.setMargins(dpToPx(6), 0, 0, 0);
+            emptySpace.setLayoutParams(emptyParams);
+
+            LinearLayout lastRow = (LinearLayout) llFavoriteContainer.getChildAt(
+                    llFavoriteContainer.getChildCount() - 1
+            );
+
+            lastRow.addView(emptySpace);
+        }
     }
 
     private void showEmptyFavoriteBox() {
@@ -187,5 +244,10 @@ public class FavoriteActivity extends Activity {
             default:
                 return R.drawable.img_placeholder_food;
         }
+    }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
     }
 }
