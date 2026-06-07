@@ -252,7 +252,7 @@
             android:layout_alignParentBottom="true"
             android:layout_marginStart="24dp"
             android:layout_marginEnd="24dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="32dp"
             android:background="@drawable/bg_search"
             android:elevation="10dp"
             android:orientation="horizontal"

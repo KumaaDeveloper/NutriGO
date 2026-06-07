@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.Locale;
 
 public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.ViewHolder> {
 
@@ -60,6 +61,9 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
 
         holder.tvNamaResto.setText(store.namaResto);
         holder.tvKategori.setText(store.kategori);
+
+        holder.tvRatingResto.setText(String.format(Locale.US, "%.2f", store.rating));
+        holder.tvTerjualResto.setText("Terjual " + store.terjual);
 
         int imageRes = getImageResource(store.namaResto);
         holder.imgResto.setImageResource(imageRes);
@@ -122,7 +126,6 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
         }
     }
 
-
     private int getImageResource(String namaResto) {
         if (namaResto == null) {
             return R.drawable.img_placeholder_food;
@@ -165,6 +168,8 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
         ImageView imgBtnFavorite;
         TextView tvNamaResto;
         TextView tvKategori;
+        TextView tvRatingResto;
+        TextView tvTerjualResto;
         View btnFavoriteContainer;
 
         ViewHolder(View itemView) {
@@ -174,6 +179,8 @@ public class RestaurantAdapter extends RecyclerView.Adapter<RestaurantAdapter.Vi
             imgBtnFavorite = itemView.findViewById(R.id.imgBtnFavorite);
             tvNamaResto = itemView.findViewById(R.id.tvNamaResto);
             tvKategori = itemView.findViewById(R.id.tvKategori);
+            tvRatingResto = itemView.findViewById(R.id.tvRatingResto);
+            tvTerjualResto = itemView.findViewById(R.id.tvTerjualResto);
             btnFavoriteContainer = itemView.findViewById(R.id.btnFavoriteContainer);
         }
     }

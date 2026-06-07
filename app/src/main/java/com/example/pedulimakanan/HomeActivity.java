@@ -390,6 +390,7 @@ public class HomeActivity extends Activity {
                         r.alamatResto = obj.optString("alamat_resto", "");
                         r.kategori = obj.optString("kategori", "");
                         r.rating = (float) obj.optDouble("rating", 0.0);
+                        r.terjual = obj.optInt("terjual", 0);
                         r.gambarUrl = obj.optString("gambar_url", "");
                         r.tipeMenu = obj.optString("tipe_menu", "Makanan");
 

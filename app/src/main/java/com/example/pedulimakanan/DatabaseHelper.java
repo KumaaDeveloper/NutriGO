@@ -12,7 +12,7 @@ import org.json.JSONObject;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "db_pedulimakanan.db";
-    private static final int DB_VERSION = 6;
+    private static final int DB_VERSION = 7;
 
     public static final String TABLE_USERS = "users";
     public static final String TABLE_RESTORAN = "restoran";
@@ -57,6 +57,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "kategori TEXT," +
                 "tipe_menu TEXT DEFAULT 'Makanan'," +
                 "rating REAL DEFAULT 0," +
+                "terjual INTEGER DEFAULT 0," +
                 "gambar_url TEXT)");
 
         db.execSQL("CREATE TABLE " + TABLE_MENU + " (" +
@@ -122,15 +123,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void seedData(SQLiteDatabase db) {
-        insertResto(db, "Saladstop", "Jl. Sudirman No. 1", "Salad", TIPE_MAKANAN, 4.8f, "saladstop");
-        insertResto(db, "Supergrain", "Jl. Thamrin No. 5", "Grain Bowl", TIPE_MAKANAN, 4.3f, "supergrain");
-        insertResto(db, "Burgreen", "Jl. Kemang No. 10", "Vegan", TIPE_MAKANAN, 4.5f, "burgreen");
-        insertResto(db, "GreenBowl", "Jl. Kuningan No. 7", "Bowls", TIPE_MAKANAN, 3.8f, "greenbowl");
+        insertResto(db, "Saladstop", "Jl. Sudirman No. 1", "Salad", TIPE_MAKANAN, 4.8f, 130, "saladstop");
+        insertResto(db, "Supergrain", "Jl. Thamrin No. 5", "Grain Bowl", TIPE_MAKANAN, 4.3f, 145, "supergrain");
+        insertResto(db, "Burgreen", "Jl. Kemang No. 10", "Vegan", TIPE_MAKANAN, 4.5f, 168, "burgreen");
+        insertResto(db, "GreenBowl", "Jl. Kuningan No. 7", "Bowls", TIPE_MAKANAN, 3.8f, 92, "greenbowl");
 
-        insertResto(db, "SmoothieBar", "Jl. Sudirman No. 50", "Smoothie", TIPE_MINUMAN, 4.6f, "img_placeholder_food");
+        insertResto(db, "SmoothieBar", "Jl. Sudirman No. 50", "Smoothie", TIPE_MINUMAN, 4.6f, 156, "img_placeholder_food");
 
-        insertResto(db, "FreshBox", "Jl. Senayan No. 2", "Healthy", TIPE_SNACK, 3.5f, "freshbox");
-        insertResto(db, "NutriSnack", "Jl. Blok M No. 8", "Snack", TIPE_SNACK, 4.0f, "img_placeholder_food");
+        insertResto(db, "FreshBox", "Jl. Senayan No. 2", "Healthy", TIPE_SNACK, 3.5f, 87, "freshbox");
+        insertResto(db, "NutriSnack", "Jl. Blok M No. 8", "Snack", TIPE_SNACK, 4.0f, 112, "img_placeholder_food");
 
         insertMenu(db, 1, "Tuna San", 85000, "Salad tuna segar dengan alpukat, tomat, saus madu", "", 1);
         insertMenu(db, 1, "Hail Caesar", 80000, "Caesar klasik dengan ayam panggang dan parmesan", "", 1);
@@ -163,13 +164,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void insertResto(SQLiteDatabase db, String nama, String alamat,
-                             String kategori, String tipeMenu, float rating, String gambar) {
+                             String kategori, String tipeMenu, float rating, int terjual, String gambar) {
         ContentValues cv = new ContentValues();
         cv.put("nama_resto", nama);
         cv.put("alamat_resto", alamat);
         cv.put("kategori", kategori);
         cv.put("tipe_menu", tipeMenu);
         cv.put("rating", rating);
+        cv.put("terjual", terjual);
         cv.put("gambar_url", gambar);
         db.insert(TABLE_RESTORAN, null, cv);
     }
@@ -286,14 +288,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cv.put("password", passwordBaru);
         cv.put("kode_verifikasi", "");
 
-        getWritableDatabase().update(
+        return getWritableDatabase().update(
                 TABLE_USERS,
                 cv,
                 "id=?",
                 new String[]{String.valueOf(userId)}
-        );
-
-        return true;
+        ) > 0;
     }
 
     public Cursor getAllRestoran() {
