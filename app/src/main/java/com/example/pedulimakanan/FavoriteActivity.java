@@ -241,6 +241,12 @@ public class FavoriteActivity extends Activity {
             case "freshbox":
                 return R.drawable.img_freshbox;
 
+            case "nutrisnack":
+                return R.drawable.img_nutri_snack;
+
+            case "smoothiebar":
+                return R.drawable.img_smoothie_bar;
+
             default:
                 return R.drawable.img_placeholder_food;
         }

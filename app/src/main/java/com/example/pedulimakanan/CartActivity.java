@@ -99,7 +99,6 @@ public class CartActivity extends Activity {
         });
 
         layoutNavCart.setOnClickListener(v -> {
-            // Sudah berada di halaman cart
         });
 
         layoutNavTransaksi.setOnClickListener(v -> {
@@ -193,6 +192,83 @@ public class CartActivity extends Activity {
 
     private String formatRupiah(int amount) {
         return String.format("%,d", amount).replace(',', '.');
+    }
+
+    private int getMenuImage(String nama) {
+        if (nama == null) {
+            return R.drawable.img_placeholder_food;
+        }
+
+        switch (nama.toLowerCase().trim()) {
+            case "tuna san":
+                return R.drawable.img_tuna_san;
+
+            case "hail caesar":
+                return R.drawable.img_hail_caesar;
+
+            case "mini bowl":
+                return R.drawable.img_mini_bowl;
+
+            case "protein mix":
+                return R.drawable.img_protein_mix;
+
+            case "brown rice bowl":
+                return R.drawable.img_brown_rice_bowl;
+
+            case "quinoa power":
+                return R.drawable.img_quinoa_power;
+
+            case "grain classic":
+                return R.drawable.img_grain_classic;
+
+            case "green detox":
+                return R.drawable.img_green_detox;
+
+            case "chicken bowl":
+                return R.drawable.img_chicken_bowl;
+
+            case "wrap veggie":
+                return R.drawable.img_wrap_veggie;
+
+            case "fruit bowl":
+                return R.drawable.img_fruit_bowl;
+
+            case "vegan burger":
+                return R.drawable.img_vegan_burger;
+
+            case "smoothie bowl":
+                return R.drawable.img_smoothie_bowl;
+
+            case "tropical blast":
+                return R.drawable.img_tropical_blast;
+
+            case "green power":
+                return R.drawable.img_green_power;
+
+            case "berry bliss":
+                return R.drawable.img_berry_bliss;
+
+            case "peanut butter boo":
+                return R.drawable.img_peanut_butter_boo;
+
+            case "detox cleanse":
+                return R.drawable.img_detox_clease;
+
+            case "granola bar":
+                return R.drawable.img_granola_bar;
+
+            case "edamame cup":
+                return R.drawable.img_edamame_cup;
+
+            case "mixed nuts":
+                return R.drawable.img_mixed_nuts;
+
+            case "rice cake":
+                return R.drawable.img_rice_cake;
+
+            default:
+                return R.drawable.img_placeholder_food;
+        }
     }
 
     private void showEmptyCartBox() {
@@ -301,12 +377,14 @@ public class CartActivity extends Activity {
                         View row = LayoutInflater.from(CartActivity.this)
                                 .inflate(R.layout.item_cart_row, llCartContainer, false);
 
+                        ImageView imgCartItem = row.findViewById(R.id.imgCartItem);
                         TextView tvNama = row.findViewById(R.id.tvCartItemNama);
                         TextView tvHarga = row.findViewById(R.id.tvCartItemHarga);
                         TextView tvQty = row.findViewById(R.id.tvCartItemQty);
                         TextView tvSubtotal = row.findViewById(R.id.tvCartItemSubtotal);
                         CheckBox cb = row.findViewById(R.id.cbCartItem);
 
+                        imgCartItem.setImageResource(getMenuImage(nama));
                         tvNama.setText(nama);
                         tvHarga.setText("Harga: Rp " + formatRupiah(harga));
                         tvQty.setText("x" + jumlah);
