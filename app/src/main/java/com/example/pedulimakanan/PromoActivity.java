@@ -12,11 +12,15 @@ import android.view.View;
 import android.widget.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public class PromoActivity extends Activity {
 
     private String restoranNama;
+    private final ArrayList<String> restoranNamaList = new ArrayList<>();
+
     private int subtotal;
     private int ongkir;
 
@@ -29,9 +33,9 @@ public class PromoActivity extends Activity {
     private TextView tvSummaryTotal;
     private Button btnTerapkanPromo;
 
-    private Promo selectedRegularPromo = null;
-    private Promo selectedPrivatePromo = null;
-    private Promo foundPromo = null;
+    private final ArrayList<Promo> selectedRegularPromos = new ArrayList<>();
+    private final ArrayList<Promo> selectedPrivatePromos = new ArrayList<>();
+    private final ArrayList<Promo> foundPrivatePromos = new ArrayList<>();
 
     private final int GREEN = Color.parseColor("#4CAF50");
     private final int GREY = Color.parseColor("#9E9E9E");
@@ -47,16 +51,38 @@ public class PromoActivity extends Activity {
 
         restoranNama = getIntent().getStringExtra("restoran_nama");
         subtotal = getIntent().getIntExtra("subtotal", 0);
-        ongkir = getIntent().getIntExtra("ongkir", 6000);
+        ongkir = getIntent().getIntExtra("ongkir", 0);
 
         if (restoranNama == null) {
             restoranNama = "";
         }
 
+        ArrayList<String> extraList = getIntent().getStringArrayListExtra("restoran_nama_list");
+
+        if (extraList != null) {
+            Set<String> unique = new LinkedHashSet<>();
+
+            for (String s : extraList) {
+                if (s != null && !s.trim().isEmpty()) {
+                    unique.add(normalizeDisplayRestaurantName(s));
+                }
+            }
+
+            restoranNamaList.addAll(unique);
+        }
+
+        if (restoranNamaList.isEmpty() && !restoranNama.trim().isEmpty()) {
+            restoranNamaList.add(normalizeDisplayRestaurantName(restoranNama));
+        }
+
+        if (restoranNama.trim().isEmpty() && !restoranNamaList.isEmpty()) {
+            restoranNama = restoranNamaList.get(0);
+        }
+
         findViewById(R.id.btnBackPromo).setOnClickListener(v -> finish());
 
         ((TextView) findViewById(R.id.tvPromoTitle)).setText("Promo");
-        ((TextView) findViewById(R.id.tvPromoSubtitle)).setText(restoranNama);
+        ((TextView) findViewById(R.id.tvPromoSubtitle)).setText(getRestaurantSubtitle());
         ((TextView) findViewById(R.id.tvPromoSubtotal)).setText("Subtotal: Rp " + formatRupiah(subtotal));
 
         etKodePromo = findViewById(R.id.etKodePromo);
@@ -75,6 +101,24 @@ public class PromoActivity extends Activity {
         updateSummary();
     }
 
+    private String getRestaurantSubtitle() {
+        if (restoranNamaList.isEmpty()) {
+            return restoranNama == null || restoranNama.trim().isEmpty() ? "Restoran" : restoranNama;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < restoranNamaList.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+
+            sb.append(restoranNamaList.get(i));
+        }
+
+        return sb.toString();
+    }
+
     private void checkPromoCode() {
         String code = etKodePromo.getText().toString().trim().toUpperCase(Locale.US);
 
@@ -86,15 +130,36 @@ public class PromoActivity extends Activity {
         Promo promo = findPromoByCode(code);
 
         if (promo == null) {
-            foundPromo = null;
             Toast.makeText(this, "Kode promo tidak ditemukan", Toast.LENGTH_SHORT).show();
         } else {
-            foundPromo = promo;
+            addFoundPromo(promo);
             Toast.makeText(this, "Kode promo ditemukan", Toast.LENGTH_SHORT).show();
         }
 
         renderPromos();
         updateSummary();
+    }
+
+    private void addFoundPromo(Promo promo) {
+        if (promo == null) {
+            return;
+        }
+
+        if (isFoundPromoExist(promo.code)) {
+            return;
+        }
+
+        foundPrivatePromos.add(promo);
+    }
+
+    private boolean isFoundPromoExist(String code) {
+        for (Promo promo : foundPrivatePromos) {
+            if (promo.code.equalsIgnoreCase(code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Promo findPromoByCode(String code) {
@@ -104,9 +169,11 @@ public class PromoActivity extends Activity {
             }
         }
 
-        for (Promo p : getRestaurantPromos(restoranNama)) {
-            if (p.code.equalsIgnoreCase(code)) {
-                return p;
+        for (String resto : restoranNamaList) {
+            for (Promo p : getRestaurantPromos(resto)) {
+                if (p.code.equalsIgnoreCase(code)) {
+                    return p;
+                }
             }
         }
 
@@ -117,29 +184,43 @@ public class PromoActivity extends Activity {
         llFoundPromo.removeAllViews();
         llPromoList.removeAllViews();
 
-        if (foundPromo != null) {
-            llFoundPromo.addView(createSmallTitle("Promo ditemukan"));
-            llFoundPromo.addView(createPromoBox(foundPromo));
+        if (!foundPrivatePromos.isEmpty()) {
+            llFoundPromo.addView(createSmallTitle("Promo Privat Ditemukan"));
+
+            for (Promo promo : foundPrivatePromos) {
+                llFoundPromo.addView(createPromoBox(promo));
+            }
+
             llFoundPromo.setVisibility(View.VISIBLE);
         } else {
             llFoundPromo.setVisibility(View.GONE);
         }
 
-        llPromoList.addView(createSmallTitle("Promo untuk " + restoranNama));
+        boolean hasPromo = false;
 
-        ArrayList<Promo> promos = getRestaurantPromos(restoranNama);
+        for (String resto : restoranNamaList) {
+            ArrayList<Promo> promos = getRestaurantPromos(resto);
 
-        if (promos.isEmpty()) {
+            if (!promos.isEmpty()) {
+                hasPromo = true;
+
+                if (restoranNamaList.size() > 1) {
+                    llPromoList.addView(createSmallTitle("Promo " + normalizeDisplayRestaurantName(resto)));
+                }
+
+                for (Promo promo : promos) {
+                    llPromoList.addView(createPromoBox(promo));
+                }
+            }
+        }
+
+        if (!hasPromo) {
             TextView empty = new TextView(this);
             empty.setText("Belum ada promo untuk restoran ini.");
             empty.setTextColor(Color.parseColor("#777777"));
             empty.setTextSize(13);
             empty.setPadding(0, dp(10), 0, dp(10));
             llPromoList.addView(empty);
-        } else {
-            for (Promo promo : promos) {
-                llPromoList.addView(createPromoBox(promo));
-            }
         }
     }
 
@@ -254,20 +335,7 @@ public class PromoActivity extends Activity {
                 return;
             }
 
-            if (promo.isPrivate) {
-                if (selectedPrivatePromo != null && selectedPrivatePromo.code.equalsIgnoreCase(promo.code)) {
-                    selectedPrivatePromo = null;
-                } else {
-                    selectedPrivatePromo = promo;
-                }
-            } else {
-                if (selectedRegularPromo != null && selectedRegularPromo.code.equalsIgnoreCase(promo.code)) {
-                    selectedRegularPromo = null;
-                } else {
-                    selectedRegularPromo = promo;
-                }
-            }
-
+            togglePromo(promo);
             renderPromos();
             updateSummary();
         });
@@ -277,12 +345,74 @@ public class PromoActivity extends Activity {
         return box;
     }
 
-    private boolean isSelected(Promo promo) {
+    private void togglePromo(Promo promo) {
         if (promo.isPrivate) {
-            return selectedPrivatePromo != null && selectedPrivatePromo.code.equalsIgnoreCase(promo.code);
+            if (isPrivatePromoSelected(promo.code)) {
+                removePrivatePromoByCode(promo.code);
+            } else {
+                selectedPrivatePromos.add(promo);
+            }
+
+            return;
         }
 
-        return selectedRegularPromo != null && selectedRegularPromo.code.equalsIgnoreCase(promo.code);
+        if (isSelected(promo)) {
+            removeRegularPromoByCode(promo.code);
+            return;
+        }
+
+        removeRegularPromoByRestaurant(promo.restaurantName);
+        selectedRegularPromos.add(promo);
+    }
+
+    private void removePrivatePromoByCode(String code) {
+        for (int i = selectedPrivatePromos.size() - 1; i >= 0; i--) {
+            if (selectedPrivatePromos.get(i).code.equalsIgnoreCase(code)) {
+                selectedPrivatePromos.remove(i);
+            }
+        }
+    }
+
+    private boolean isPrivatePromoSelected(String code) {
+        for (Promo p : selectedPrivatePromos) {
+            if (p.code.equalsIgnoreCase(code)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void removeRegularPromoByCode(String code) {
+        for (int i = selectedRegularPromos.size() - 1; i >= 0; i--) {
+            if (selectedRegularPromos.get(i).code.equalsIgnoreCase(code)) {
+                selectedRegularPromos.remove(i);
+            }
+        }
+    }
+
+    private void removeRegularPromoByRestaurant(String restaurantName) {
+        for (int i = selectedRegularPromos.size() - 1; i >= 0; i--) {
+            Promo p = selectedRegularPromos.get(i);
+
+            if (p.restaurantName != null && p.restaurantName.equalsIgnoreCase(restaurantName)) {
+                selectedRegularPromos.remove(i);
+            }
+        }
+    }
+
+    private boolean isSelected(Promo promo) {
+        if (promo.isPrivate) {
+            return isPrivatePromoSelected(promo.code);
+        }
+
+        for (Promo p : selectedRegularPromos) {
+            if (p.code.equalsIgnoreCase(promo.code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String getButtonText(Promo promo) {
@@ -316,23 +446,18 @@ public class PromoActivity extends Activity {
     private void updateSummary() {
         int discount = 0;
         boolean freeOngkir = false;
-        String promoText = "";
+        ArrayList<String> promoCodes = new ArrayList<>();
 
-        if (selectedRegularPromo != null) {
-            discount += calculateDiscount(selectedRegularPromo);
-            freeOngkir = freeOngkir || selectedRegularPromo.freeOngkir;
-            promoText = selectedRegularPromo.code;
+        for (Promo promo : selectedRegularPromos) {
+            discount += calculateDiscount(promo);
+            freeOngkir = freeOngkir || promo.freeOngkir;
+            promoCodes.add(promo.code);
         }
 
-        if (selectedPrivatePromo != null) {
-            discount += calculateDiscount(selectedPrivatePromo);
-            freeOngkir = freeOngkir || selectedPrivatePromo.freeOngkir;
-
-            if (promoText.trim().isEmpty()) {
-                promoText = selectedPrivatePromo.code;
-            } else {
-                promoText = promoText + " + " + selectedPrivatePromo.code;
-            }
+        for (Promo promo : selectedPrivatePromos) {
+            discount += calculateDiscount(promo);
+            freeOngkir = freeOngkir || promo.freeOngkir;
+            promoCodes.add(promo.code);
         }
 
         if (discount > subtotal) {
@@ -342,16 +467,24 @@ public class PromoActivity extends Activity {
         int ongkirFinal = freeOngkir ? 0 : ongkir;
         int total = Math.max(0, subtotal + ongkirFinal - discount);
 
+        String promoText = joinPromoCodes(promoCodes);
+        String promoTextDisplay = joinPromoCodesForDisplay(promoCodes);
+
         if (promoText.trim().isEmpty()) {
             tvSummaryPromo.setText("-");
             tvSummaryDiskon.setText("Rp 0");
             tvSummaryOngkir.setText("Rp " + formatRupiah(ongkir));
+            tvSummaryOngkir.setTextColor(Color.parseColor("#333333"));
             tvSummaryTotal.setText("Rp " + formatRupiah(subtotal + ongkir));
 
             btnTerapkanPromo.setEnabled(false);
             btnTerapkanPromo.setBackgroundTintList(ColorStateList.valueOf(GREY));
         } else {
-            tvSummaryPromo.setText(promoText);
+            tvSummaryPromo.setText(promoTextDisplay);
+            tvSummaryPromo.setSingleLine(false);
+            tvSummaryPromo.setMaxLines(10);
+            tvSummaryPromo.setGravity(Gravity.END);
+
             tvSummaryDiskon.setText("- Rp " + formatRupiah(discount));
 
             if (freeOngkir) {
@@ -372,36 +505,72 @@ public class PromoActivity extends Activity {
     private void applySelectedPromo() {
         int discount = 0;
         boolean freeOngkir = false;
-        String promoText = "";
+        ArrayList<String> promoCodes = new ArrayList<>();
 
-        if (selectedRegularPromo != null) {
-            discount += calculateDiscount(selectedRegularPromo);
-            freeOngkir = freeOngkir || selectedRegularPromo.freeOngkir;
-            promoText = selectedRegularPromo.code;
+        for (Promo promo : selectedRegularPromos) {
+            discount += calculateDiscount(promo);
+            freeOngkir = freeOngkir || promo.freeOngkir;
+            promoCodes.add(promo.code);
         }
 
-        if (selectedPrivatePromo != null) {
-            discount += calculateDiscount(selectedPrivatePromo);
-            freeOngkir = freeOngkir || selectedPrivatePromo.freeOngkir;
-
-            if (promoText.trim().isEmpty()) {
-                promoText = selectedPrivatePromo.code;
-            } else {
-                promoText = promoText + " + " + selectedPrivatePromo.code;
-            }
+        for (Promo promo : selectedPrivatePromos) {
+            discount += calculateDiscount(promo);
+            freeOngkir = freeOngkir || promo.freeOngkir;
+            promoCodes.add(promo.code);
         }
 
         if (discount > subtotal) {
             discount = subtotal;
         }
 
+        String promoKodeGabungan = joinPromoCodes(promoCodes);
+
+        if (promoKodeGabungan.trim().isEmpty()) {
+            Toast.makeText(this, "Pilih promo dulu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent data = new Intent();
         data.putExtra("discount", discount);
+        data.putExtra("promo_diskon", discount);
         data.putExtra("free_ongkir", freeOngkir);
-        data.putExtra("promo_text", promoText);
+        data.putExtra("promo_text", promoKodeGabungan);
+        data.putExtra("promo_kode", promoKodeGabungan);
 
         setResult(RESULT_OK, data);
         finish();
+    }
+
+    private String joinPromoCodes(ArrayList<String> codes) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < codes.size(); i++) {
+            if (i > 0) {
+                sb.append(" + ");
+            }
+
+            sb.append(codes.get(i));
+        }
+
+        return sb.toString();
+    }
+
+    private String joinPromoCodesForDisplay(ArrayList<String> codes) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < codes.size(); i++) {
+            if (i > 0) {
+                if (i % 3 == 0) {
+                    sb.append("\n");
+                } else {
+                    sb.append(" + ");
+                }
+            }
+
+            sb.append(codes.get(i));
+        }
+
+        return sb.toString();
     }
 
     private int calculateDiscount(Promo promo) {
@@ -437,49 +606,92 @@ public class PromoActivity extends Activity {
 
     private ArrayList<Promo> getRestaurantPromos(String resto) {
         ArrayList<Promo> list = new ArrayList<>();
-        String r = resto == null ? "" : resto.toLowerCase(Locale.US).trim();
+        String r = normalizeRestaurantKey(resto);
+        String displayName = normalizeDisplayRestaurantName(resto);
 
-        if (r.equals("saladstop")) {
-            list.add(fixed("FRESH5K", "Diskon 5.000 Khusus Saladstop", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("SALAD10K", "Diskon 10.000 Khusus Saladstop", "Potongan Rp10.000 minimal belanja Rp80.000", 10000, 80000));
-            list.add(percent("HEALTHY12", "Diskon 12% Khusus Saladstop", "Diskon 12% maksimal Rp15.000", 12, 15000, 0));
+        if (r.equals("saladstop") || r.equals("saladtop")) {
+            list.add(fixed("FRESH5K", "Diskon 5.000 Khusus Saladstop", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("SALAD10K", "Diskon 10.000 Khusus Saladstop", "Potongan Rp10.000 minimal belanja Rp80.000", 10000, 80000, displayName));
+            list.add(percent("HEALTHY12", "Diskon 12% Khusus Saladstop", "Diskon 12% maksimal Rp15.000", 12, 15000, 0, displayName));
+
         } else if (r.equals("supergrain")) {
-            list.add(fixed("GRAIN5K", "Diskon 5.000 Khusus Supergrain", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("SUPER8K", "Diskon 8.000 Khusus Supergrain", "Potongan Rp8.000 minimal belanja Rp70.000", 8000, 70000));
-            list.add(percent("LUNCH10", "Diskon 10% Khusus Supergrain", "Diskon 10% maksimal Rp12.000", 10, 12000, 0));
+            list.add(fixed("GRAIN5K", "Diskon 5.000 Khusus Supergrain", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("SUPER8K", "Diskon 8.000 Khusus Supergrain", "Potongan Rp8.000 minimal belanja Rp70.000", 8000, 70000, displayName));
+            list.add(percent("LUNCH10", "Diskon 10% Khusus Supergrain", "Diskon 10% maksimal Rp12.000", 10, 12000, 0, displayName));
+
         } else if (r.equals("burgreen")) {
-            list.add(fixed("VEG5K", "Diskon 5.000 Khusus Burgreen", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("GREEN7K", "Diskon 7.000 Khusus Burgreen", "Potongan Rp7.000", 7000, 0));
-            list.add(percent("BURGREEN10", "Diskon 10% Khusus Burgreen", "Diskon 10% maksimal Rp10.000", 10, 10000, 0));
-            list.add(fixed("HEMAT12K", "Diskon 12.000 Khusus Burgreen", "Potongan Rp12.000 minimal belanja Rp120.000", 12000, 120000));
+            list.add(fixed("VEG5K", "Diskon 5.000 Khusus Burgreen", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("GREEN7K", "Diskon 7.000 Khusus Burgreen", "Potongan Rp7.000", 7000, 0, displayName));
+            list.add(percent("BURGREEN10", "Diskon 10% Khusus Burgreen", "Diskon 10% maksimal Rp10.000", 10, 10000, 0, displayName));
+            list.add(fixed("HEMAT12K", "Diskon 12.000 Khusus Burgreen", "Potongan Rp12.000 minimal belanja Rp120.000", 12000, 120000, displayName));
+
         } else if (r.equals("greenbowl")) {
-            list.add(fixed("BOWL5K", "Diskon 5.000 Khusus GreenBowl", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("GREEN8K", "Diskon 8.000 Khusus GreenBowl", "Potongan Rp8.000 minimal belanja Rp75.000", 8000, 75000));
-            list.add(percent("FRESH10", "Diskon 10% Khusus GreenBowl", "Diskon 10% maksimal Rp10.000", 10, 10000, 0));
+            list.add(fixed("BOWL5K", "Diskon 5.000 Khusus GreenBowl", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("GREEN8K", "Diskon 8.000 Khusus GreenBowl", "Potongan Rp8.000 minimal belanja Rp75.000", 8000, 75000, displayName));
+            list.add(percent("FRESH10", "Diskon 10% Khusus GreenBowl", "Diskon 10% maksimal Rp10.000", 10, 10000, 0, displayName));
+
         } else if (r.equals("smoothiebar")) {
-            list.add(fixed("SMOOTH5K", "Diskon 5.000 Khusus SmoothieBar", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("BOOST8K", "Diskon 8.000 Khusus SmoothieBar", "Potongan Rp8.000", 8000, 0));
-            list.add(percent("DRINK10", "Diskon 10% Khusus SmoothieBar", "Diskon 10% maksimal Rp10.000", 10, 10000, 0));
-            list.add(fixed("SHAKE12K", "Diskon 12.000 Khusus SmoothieBar", "Potongan Rp12.000 minimal belanja Rp100.000", 12000, 100000));
+            list.add(fixed("SMOOTH5K", "Diskon 5.000 Khusus SmoothieBar", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("BOOST8K", "Diskon 8.000 Khusus SmoothieBar", "Potongan Rp8.000", 8000, 0, displayName));
+            list.add(percent("DRINK10", "Diskon 10% Khusus SmoothieBar", "Diskon 10% maksimal Rp10.000", 10, 10000, 0, displayName));
+            list.add(fixed("SHAKE12K", "Diskon 12.000 Khusus SmoothieBar", "Potongan Rp12.000 minimal belanja Rp100.000", 12000, 100000, displayName));
+
         } else if (r.equals("freshbox")) {
-            list.add(fixed("BOX5K", "Diskon 5.000 Khusus FreshBox", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("FRESH7K", "Diskon 7.000 Khusus FreshBox", "Potongan Rp7.000", 7000, 0));
-            list.add(fixed("MEAL10K", "Diskon 10.000 Khusus FreshBox", "Potongan Rp10.000 minimal belanja Rp90.000", 10000, 90000));
+            list.add(fixed("BOX5K", "Diskon 5.000 Khusus FreshBox", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("FRESH7K", "Diskon 7.000 Khusus FreshBox", "Potongan Rp7.000", 7000, 0, displayName));
+            list.add(fixed("MEAL10K", "Diskon 10.000 Khusus FreshBox", "Potongan Rp10.000 minimal belanja Rp90.000", 10000, 90000, displayName));
+
         } else if (r.equals("nutrisnack")) {
-            list.add(fixed("NUTRI5K", "Diskon 5.000 Khusus NutriSnack", "Potongan Rp5.000", 5000, 0));
-            list.add(fixed("SNACK7K", "Diskon 7.000 Khusus NutriSnack", "Potongan Rp7.000", 7000, 0));
-            list.add(percent("NUTRI10", "Diskon 10% Khusus NutriSnack", "Diskon 10% maksimal Rp10.000", 10, 10000, 0));
+            list.add(fixed("NUTRI5K", "Diskon 5.000 Khusus NutriSnack", "Potongan Rp5.000", 5000, 0, displayName));
+            list.add(fixed("SNACK7K", "Diskon 7.000 Khusus NutriSnack", "Potongan Rp7.000", 7000, 0, displayName));
+            list.add(percent("NUTRI10", "Diskon 10% Khusus NutriSnack", "Diskon 10% maksimal Rp10.000", 10, 10000, 0, displayName));
         }
 
         return list;
     }
 
-    private Promo fixed(String code, String title, String desc, int amount, int minSubtotal) {
-        return new Promo(code, title, desc, Promo.TYPE_FIXED, amount, 0, 0, minSubtotal, false, false);
+    private Promo fixed(String code, String title, String desc, int amount, int minSubtotal, String restaurantName) {
+        Promo promo = new Promo(code, title, desc, Promo.TYPE_FIXED, amount, 0, 0, minSubtotal, false, false);
+        promo.restaurantName = restaurantName;
+        return promo;
     }
 
-    private Promo percent(String code, String title, String desc, int percent, int maxDiscount, int minSubtotal) {
-        return new Promo(code, title, desc, Promo.TYPE_PERCENT, 0, percent, maxDiscount, minSubtotal, false, false);
+    private Promo percent(String code, String title, String desc, int percent, int maxDiscount, int minSubtotal, String restaurantName) {
+        Promo promo = new Promo(code, title, desc, Promo.TYPE_PERCENT, 0, percent, maxDiscount, minSubtotal, false, false);
+        promo.restaurantName = restaurantName;
+        return promo;
+    }
+
+    private String normalizeRestaurantKey(String resto) {
+        if (resto == null) {
+            return "";
+        }
+
+        return resto.toLowerCase(Locale.US)
+                .trim()
+                .replace(" ", "");
+    }
+
+    private String normalizeDisplayRestaurantName(String resto) {
+        String r = normalizeRestaurantKey(resto);
+
+        if (r.equals("saladstop") || r.equals("saladtop")) {
+            return "Saladstop";
+        } else if (r.equals("supergrain")) {
+            return "Supergrain";
+        } else if (r.equals("burgreen")) {
+            return "Burgreen";
+        } else if (r.equals("greenbowl")) {
+            return "GreenBowl";
+        } else if (r.equals("smoothiebar")) {
+            return "SmoothieBar";
+        } else if (r.equals("freshbox")) {
+            return "FreshBox";
+        } else if (r.equals("nutrisnack")) {
+            return "NutriSnack";
+        }
+
+        return resto == null ? "" : resto.trim();
     }
 
     private GradientDrawable makeRounded(int color, int radius, int strokeColor, int strokeWidth) {
@@ -491,7 +703,7 @@ public class PromoActivity extends Activity {
     }
 
     private String formatRupiah(int amount) {
-        return String.format("%,d", amount).replace(',', '.');
+        return String.format(Locale.US, "%,d", amount).replace(',', '.');
     }
 
     private int dp(int value) {
@@ -512,6 +724,7 @@ public class PromoActivity extends Activity {
         int minSubtotal;
         boolean freeOngkir;
         boolean isPrivate;
+        String restaurantName = "";
 
         Promo(String code, String title, String description, int type,
               int amount, int percent, int maxDiscount, int minSubtotal,

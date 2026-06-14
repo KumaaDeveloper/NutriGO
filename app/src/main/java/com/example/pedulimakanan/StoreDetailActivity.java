@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class StoreDetailActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://139.162.46.52/pedulimakanan/connector.php";
     private static final String PREF_NAME = "login_session";
     private static final int BIAYA_ONGKIR = 6000;
     private static final int REQ_PROMO = 2001;
@@ -110,13 +110,26 @@ public class StoreDetailActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQ_PROMO && resultCode == RESULT_OK && data != null) {
-            appliedDiscount = data.getIntExtra("discount", 0);
+            appliedDiscount = data.getIntExtra("promo_diskon", data.getIntExtra("discount", 0));
             appliedFreeOngkir = data.getBooleanExtra("free_ongkir", false);
-            appliedPromoText = data.getStringExtra("promo_text");
+
+            appliedPromoText = data.getStringExtra("promo_kode");
+
+            if (appliedPromoText == null || appliedPromoText.trim().isEmpty()) {
+                appliedPromoText = data.getStringExtra("promo_text");
+            }
 
             if (appliedPromoText == null) {
                 appliedPromoText = "";
             }
+
+            Toast.makeText(
+                    this,
+                    appliedPromoText.trim().isEmpty()
+                            ? "Promo tidak terbaca"
+                            : "Promo dipakai: " + appliedPromoText,
+                    Toast.LENGTH_SHORT
+            ).show();
 
             updateSummary();
         }
@@ -134,13 +147,16 @@ public class StoreDetailActivity extends Activity {
 
     private void updateSummary() {
         int subtotal = getSubtotal();
-        int ongkirFinal = appliedFreeOngkir ? 0 : BIAYA_ONGKIR;
+        int ongkirAsli = cart.isEmpty() ? 0 : BIAYA_ONGKIR;
+        int ongkirFinal = appliedFreeOngkir ? 0 : ongkirAsli;
         int discountFinal = Math.min(appliedDiscount, subtotal);
         int total = Math.max(0, subtotal + ongkirFinal - discountFinal);
 
         tvHarga.setText("Rp " + formatRupiah(subtotal));
 
-        if (appliedFreeOngkir) {
+        if (cart.isEmpty()) {
+            tvOngkir.setText("Rp 0");
+        } else if (appliedFreeOngkir) {
             tvOngkir.setText("Gratis");
         } else {
             tvOngkir.setText("Rp " + formatRupiah(BIAYA_ONGKIR));
@@ -152,7 +168,7 @@ public class StoreDetailActivity extends Activity {
             if (appliedPromoText.trim().isEmpty()) {
                 tvPromoRow.setText("Promo");
             } else {
-                tvPromoRow.setText("Promo (" + appliedPromoText + ")");
+                tvPromoRow.setText("Promo (" + formatPromoTextForDisplay(appliedPromoText) + ")");
             }
 
             if (discountFinal > 0 && appliedFreeOngkir) {
@@ -163,7 +179,7 @@ public class StoreDetailActivity extends Activity {
                 tvPromoAmount.setText("Gratis Ongkir");
             }
 
-            tvPromoStatus.setText(appliedPromoText.trim().isEmpty() ? "Promo digunakan" : appliedPromoText);
+            tvPromoStatus.setText(appliedPromoText.trim().isEmpty() ? "Promo digunakan" : formatPromoTextForDisplay(appliedPromoText));
         } else {
             llPromoRow.setVisibility(View.GONE);
             tvPromoStatus.setText("Belum ada promo digunakan");
@@ -190,11 +206,15 @@ public class StoreDetailActivity extends Activity {
         }
     }
 
+    private void resetPromo() {
+        appliedDiscount = 0;
+        appliedFreeOngkir = false;
+        appliedPromoText = "";
+    }
+
     private void resetPromoIfCartEmpty() {
         if (cart.isEmpty()) {
-            appliedDiscount = 0;
-            appliedFreeOngkir = false;
-            appliedPromoText = "";
+            resetPromo();
         }
     }
 
@@ -224,11 +244,24 @@ public class StoreDetailActivity extends Activity {
                 subtotal += item.harga * item.jumlah;
             }
 
-            int ongkirFinal = appliedFreeOngkir ? 0 : BIAYA_ONGKIR;
+            int ongkirAsli = BIAYA_ONGKIR;
+            int ongkirFinal = appliedFreeOngkir ? 0 : ongkirAsli;
             int discountFinal = Math.min(appliedDiscount, subtotal);
+            int totalPotonganPromo = discountFinal;
+
+            if (appliedFreeOngkir) {
+                totalPotonganPromo += ongkirAsli;
+            }
+
             int total = Math.max(0, subtotal + ongkirFinal - discountFinal);
 
-            new DirectOrderTask().execute(cartArray.toString(), String.valueOf(total));
+            new DirectOrderTask().execute(
+                    cartArray.toString(),
+                    String.valueOf(total),
+                    String.valueOf(totalPotonganPromo),
+                    appliedPromoText == null ? "" : appliedPromoText,
+                    String.valueOf(ongkirAsli)
+            );
 
         } catch (Exception e) {
             Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -295,6 +328,29 @@ public class StoreDetailActivity extends Activity {
 
     private String formatRupiah(int amount) {
         return String.format("%,d", amount).replace(',', '.');
+    }
+
+    private String formatPromoTextForDisplay(String rawPromoText) {
+        if (rawPromoText == null || rawPromoText.trim().isEmpty()) {
+            return "-";
+        }
+
+        String[] codes = rawPromoText.split("\\s*\\+\\s*");
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < codes.length; i++) {
+            if (i > 0) {
+                if (i % 3 == 0) {
+                    sb.append("\n");
+                } else {
+                    sb.append(" + ");
+                }
+            }
+
+            sb.append(codes[i].trim());
+        }
+
+        return sb.toString();
     }
 
     static class CartItem {
@@ -441,6 +497,9 @@ public class StoreDetailActivity extends Activity {
         protected String doInBackground(String... params) {
             String cartItemsJson = params[0];
             String totalHarga = params[1];
+            String promoDiskon = params[2];
+            String promoKode = params[3];
+            String ongkir = params[4];
 
             HttpURLConnection conn = null;
 
@@ -453,12 +512,31 @@ public class StoreDetailActivity extends Activity {
                 String postData =
                         URLEncoder.encode("action", "UTF-8") + "=" +
                                 URLEncoder.encode("buat_transaksi_server", "UTF-8") + "&" +
+
                                 URLEncoder.encode("user_id", "UTF-8") + "=" +
                                 URLEncoder.encode(String.valueOf(userId), "UTF-8") + "&" +
+
                                 URLEncoder.encode("restoran_id", "UTF-8") + "=" +
                                 URLEncoder.encode(String.valueOf(restoranId), "UTF-8") + "&" +
+
                                 URLEncoder.encode("total_harga", "UTF-8") + "=" +
                                 URLEncoder.encode(totalHarga, "UTF-8") + "&" +
+
+                                URLEncoder.encode("promo_diskon", "UTF-8") + "=" +
+                                URLEncoder.encode(promoDiskon, "UTF-8") + "&" +
+
+                                URLEncoder.encode("discount", "UTF-8") + "=" +
+                                URLEncoder.encode(promoDiskon, "UTF-8") + "&" +
+
+                                URLEncoder.encode("promo_kode", "UTF-8") + "=" +
+                                URLEncoder.encode(promoKode, "UTF-8") + "&" +
+
+                                URLEncoder.encode("promo_text", "UTF-8") + "=" +
+                                URLEncoder.encode(promoKode, "UTF-8") + "&" +
+
+                                URLEncoder.encode("ongkir", "UTF-8") + "=" +
+                                URLEncoder.encode(ongkir, "UTF-8") + "&" +
+
                                 URLEncoder.encode("items", "UTF-8") + "=" +
                                 URLEncoder.encode(cartItemsJson, "UTF-8");
 

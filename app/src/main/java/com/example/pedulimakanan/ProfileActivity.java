@@ -58,12 +58,15 @@ import java.util.ArrayList;
 @SuppressWarnings("deprecation")
 public class ProfileActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://139.162.46.52/pedulimakanan/connector.php";
     private static final String PREF_NAME = "login_session";
 
     private static final int PICK_IMAGE_REQUEST = 100;
     private static final int UCROP_REQUEST_CODE = UCrop.REQUEST_CROP;
     private static final long MAX_IMAGE_SIZE_BYTES = 12 * 1024 * 1024;
+
+    private static final int MAX_DISPLAY_NAME_LENGTH = 20;
+    private static final int MAX_USERNAME_LENGTH = 20;
 
     private ShapeableImageView imgProfile;
     private TextView tvProfileName;
@@ -1068,6 +1071,43 @@ public class ProfileActivity extends Activity {
         return "+62 " + clean;
     }
 
+    private boolean isDisplayNameValid(String name, EditText input) {
+        if (name == null || name.trim().isEmpty()) {
+            input.setError("Display name harus diisi");
+            return false;
+        }
+
+        if (name.length() > MAX_DISPLAY_NAME_LENGTH) {
+            input.setError("Display name maksimal 20 karakter termasuk spasi");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isUsernameValid(String username, EditText input) {
+        if (username == null || username.trim().isEmpty()) {
+            input.setError("Username baru harus diisi");
+            return false;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH) {
+            input.setError("Username maksimal 20 huruf");
+            return false;
+        }
+
+        if (username.contains(" ")) {
+            input.setError("Username tidak boleh memakai spasi");
+            return false;
+        }
+
+        if (!username.matches("^[A-Za-z]+$")) {
+            input.setError("Username hanya boleh huruf, tanpa angka dan karakter unik");
+            return false;
+        }
+
+        return true;
+    }
     private void showChangeProfileNameDialog() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_change_single_input, null);
 
@@ -1075,7 +1115,7 @@ public class ProfileActivity extends Activity {
         EditText etNewValue = view.findViewById(R.id.etNewValue);
 
         tvOldValue.setText("Display name sebelumnya: " + currentProfileName);
-        etNewValue.setHint("Masukkan display name baru");
+        etNewValue.setHint("Maksimal 12 huruf");
         etNewValue.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PERSON_NAME);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -1091,8 +1131,12 @@ public class ProfileActivity extends Activity {
             btnSave.setOnClickListener(v -> {
                 String newName = etNewValue.getText().toString().trim();
 
-                if (newName.isEmpty()) {
-                    etNewValue.setError("Display name harus diisi");
+                if (!isDisplayNameValid(newName, etNewValue)) {
+                    return;
+                }
+
+                if (newName.equals(currentProfileName)) {
+                    etNewValue.setError("Display name baru sama dengan sebelumnya");
                     return;
                 }
 
@@ -1111,7 +1155,7 @@ public class ProfileActivity extends Activity {
         EditText etNewValue = view.findViewById(R.id.etNewValue);
 
         tvOldValue.setText("Username sebelumnya: " + currentUsername);
-        etNewValue.setHint("Masukkan username baru");
+        etNewValue.setHint("Huruf saja, maksimal 20");
         etNewValue.setInputType(InputType.TYPE_CLASS_TEXT);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -1127,8 +1171,12 @@ public class ProfileActivity extends Activity {
             btnSave.setOnClickListener(v -> {
                 String newUsername = etNewValue.getText().toString().trim();
 
-                if (newUsername.isEmpty()) {
-                    etNewValue.setError("Username baru harus diisi");
+                if (!isUsernameValid(newUsername, etNewValue)) {
+                    return;
+                }
+
+                if (newUsername.equalsIgnoreCase(currentUsername)) {
+                    etNewValue.setError("Username baru sama dengan sebelumnya");
                     return;
                 }
 
@@ -1211,6 +1259,7 @@ public class ProfileActivity extends Activity {
     private class ProfileTask extends AsyncTask<String, Void, String> {
 
         private String action;
+        private String submittedValue = "";
 
         ProfileTask(String action) {
             this.action = action;
@@ -1218,6 +1267,10 @@ public class ProfileActivity extends Activity {
 
         @Override
         protected String doInBackground(String... data) {
+            if (data.length > 0) {
+                submittedValue = data[0];
+            }
+
             HttpURLConnection conn = null;
 
             try {
@@ -1243,18 +1296,23 @@ public class ProfileActivity extends Activity {
                 if (action.equals("update_email")) {
                     postData.append("&email=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+
                 } else if (action.equals("update_phone")) {
                     postData.append("&no_hp=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+
                 } else if (action.equals("update_profile_name")) {
                     postData.append("&profile_name=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+
                 } else if (action.equals("update_address")) {
                     postData.append("&alamat=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+
                 } else if (action.equals("update_username")) {
                     postData.append("&nama=")
                             .append(URLEncoder.encode(data[0], "UTF-8"));
+
                 } else if (action.equals("update_password")) {
                     postData.append("&old_password=")
                             .append(URLEncoder.encode(data[0], "UTF-8"))
@@ -1294,6 +1352,7 @@ public class ProfileActivity extends Activity {
 
             } catch (Exception e) {
                 return "{\"success\":false,\"message\":\"Koneksi gagal\"}";
+
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -1339,6 +1398,29 @@ public class ProfileActivity extends Activity {
                         new ProfileTask("get_profile").execute();
 
                     } else {
+                        if (action.equals("update_profile_name")) {
+                            currentProfileName = submittedValue;
+                            tvProfileName.setText(currentProfileName);
+
+                            SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
+                            editor.putString("profile_name", currentProfileName);
+                            editor.apply();
+
+                        } else if (action.equals("update_username")) {
+                            currentUsername = submittedValue;
+
+                            SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
+                            editor.putString("nama", currentUsername);
+                            editor.apply();
+
+                        } else if (action.equals("update_address")) {
+                            currentAddress = submittedValue;
+
+                            SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
+                            editor.putString("alamat", currentAddress);
+                            editor.apply();
+                        }
+
                         showDialogMessage("Berhasil", message);
                         new ProfileTask("get_profile").execute();
                     }

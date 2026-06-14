@@ -44,7 +44,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="42dp"
-            android:text="@string/masukkan_nama"
+            android:text="Masukkan username"
             android:textColor="#000000"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -54,15 +54,25 @@
             android:layout_width="match_parent"
             android:layout_height="44dp"
             android:layout_marginTop="6dp"
-            android:autofillHints="name"
+            android:autofillHints="username"
             android:background="@drawable/bg_input"
-            android:hint="@string/nama"
-            android:inputType="textPersonName"
+            android:hint="Username"
+            android:inputType="text"
+            android:maxLength="20"
             android:paddingStart="18dp"
             android:paddingEnd="18dp"
+            android:singleLine="true"
             android:textColor="#000000"
             android:textColorHint="#888888"
             android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Hanya huruf, tanpa spasi, angka, dan simbol. Maksimal 20 huruf."
+            android:textColor="#777777"
+            android:textSize="10sp" />
 
         <TextView
             android:layout_width="match_parent"
@@ -84,6 +94,7 @@
             android:inputType="textEmailAddress"
             android:paddingStart="18dp"
             android:paddingEnd="18dp"
+            android:singleLine="true"
             android:textColor="#000000"
             android:textColorHint="#888888"
             android:textSize="11sp" />
@@ -123,6 +134,7 @@
                 android:background="#00000000"
                 android:hint="@string/hint_no_hp"
                 android:inputType="phone"
+                android:singleLine="true"
                 android:textColor="#000000"
                 android:textColorHint="#888888"
                 android:textSize="11sp" />
@@ -153,11 +165,11 @@
             android:completionThreshold="3"
             android:dropDownHeight="220dp"
             android:dropDownVerticalOffset="4dp"
-            android:popupBackground="#FFFFFF"
             android:hint="@string/alamat"
             android:inputType="textPostalAddress"
             android:paddingStart="18dp"
             android:paddingEnd="18dp"
+            android:popupBackground="#FFFFFF"
             android:singleLine="true"
             android:textColor="#000000"
             android:textColorHint="#888888"
@@ -191,6 +203,7 @@
                 android:background="#00000000"
                 android:hint="@string/hint_password"
                 android:inputType="textPassword"
+                android:singleLine="true"
                 android:textColor="#000000"
                 android:textColorHint="#888888"
                 android:textSize="11sp" />
@@ -234,6 +247,7 @@
                 android:background="#00000000"
                 android:hint="@string/hint_password"
                 android:inputType="textPassword"
+                android:singleLine="true"
                 android:textColor="#000000"
                 android:textColorHint="#888888"
                 android:textSize="11sp" />

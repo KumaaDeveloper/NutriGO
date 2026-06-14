@@ -1,5 +1,6 @@
 package com.example.pedulimakanan;
 
+import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
@@ -46,8 +48,9 @@ public class RegisterActivity extends Activity {
     private static final String KEY_LAST_NAMA = "last_nama";
     private static final String KEY_LAST_PASSWORD = "last_password";
     private static final String KEY_HAS_LAST_REGISTER = "has_last_register";
-
     private static final String KEY_LAST_REGISTER_TIME = "last_register_time";
+
+    private static final int MAX_USERNAME_LENGTH = 20;
 
     private EditText etNamaRegister;
     private EditText etEmailRegister;
@@ -91,6 +94,10 @@ public class RegisterActivity extends Activity {
 
         Button btnDaftar = findViewById(R.id.btnDaftar);
 
+        etNamaRegister.setFilters(new InputFilter[]{new InputFilter.LengthFilter(MAX_USERNAME_LENGTH)});
+        etNamaRegister.setInputType(InputType.TYPE_CLASS_TEXT);
+        etNamaRegister.setHint("Username");
+
         btnEyeRegister.setImageResource(R.drawable.ic_eye_close);
         btnEyeConfirmRegister.setImageResource(R.drawable.ic_eye_close);
 
@@ -106,6 +113,7 @@ public class RegisterActivity extends Activity {
             togglePassword(etConfirmRegister, btnEyeConfirmRegister, confirmVisible);
         });
 
+        setupUsernameWatcher();
         setupAddressAutocomplete();
 
         btnDaftar.setOnClickListener(v -> {
@@ -116,8 +124,7 @@ public class RegisterActivity extends Activity {
             String password = etPasswordRegister.getText().toString().trim();
             String confirm = etConfirmRegister.getText().toString().trim();
 
-            if (nama.isEmpty()) {
-                etNamaRegister.setError(getString(R.string.nama_harus_diisi));
+            if (!isUsernameValid(nama)) {
                 return;
             }
 
@@ -181,6 +188,65 @@ public class RegisterActivity extends Activity {
 
     private void allowScreenRecord() {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+    }
+
+    private void setupUsernameWatcher() {
+        etNamaRegister.addTextChangedListener(new TextWatcher() {
+            private boolean editing = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (editing) {
+                    return;
+                }
+
+                String oldText = s.toString();
+                String cleanText = oldText.replaceAll("[^A-Za-z]", "");
+
+                if (!oldText.equals(cleanText)) {
+                    editing = true;
+                    etNamaRegister.setText(cleanText);
+                    etNamaRegister.setSelection(cleanText.length());
+                    editing = false;
+
+                    etNamaRegister.setError("Username hanya boleh huruf, tanpa spasi, angka, dan karakter unik");
+                } else {
+                    etNamaRegister.setError(null);
+                }
+            }
+        });
+    }
+
+    private boolean isUsernameValid(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            etNamaRegister.setError("Username harus diisi");
+            return false;
+        }
+
+        if (username.length() > MAX_USERNAME_LENGTH) {
+            etNamaRegister.setError("Username maksimal 20 huruf");
+            return false;
+        }
+
+        if (username.contains(" ")) {
+            etNamaRegister.setError("Username tidak boleh memakai spasi");
+            return false;
+        }
+
+        if (!username.matches("^[A-Za-z]+$")) {
+            etNamaRegister.setError("Username hanya boleh huruf, tanpa angka dan karakter unik");
+            return false;
+        }
+
+        return true;
     }
 
     private void setupAddressAutocomplete() {
@@ -406,6 +472,7 @@ public class RegisterActivity extends Activity {
 
             } catch (Exception e) {
                 errorMessage = e.getMessage() == null ? "Gagal mengambil alamat" : e.getMessage();
+
             } finally {
                 if (conn != null) {
                     conn.disconnect();
@@ -569,6 +636,7 @@ public class RegisterActivity extends Activity {
 
             } catch (Exception e) {
                 return "{\"success\":false,\"message\":\"Koneksi gagal\"}";
+
             } finally {
                 if (conn != null) {
                     conn.disconnect();

@@ -110,7 +110,9 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
         android:overScrollMode="never"
+        android:paddingBottom="8dp"
         android:scrollbars="none">
 
         <LinearLayout
@@ -149,7 +151,7 @@
         android:paddingStart="16dp"
         android:paddingTop="6dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="34dp">
+        android:paddingBottom="76dp">
 
         <LinearLayout
             android:id="@+id/boxPromoSummary"
@@ -177,8 +179,12 @@
 
                 <TextView
                     android:id="@+id/tvSummaryPromo"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:maxLines="10"
+                    android:singleLine="false"
                     android:text="-"
                     android:textColor="#246E9B"
                     android:textSize="13sp"

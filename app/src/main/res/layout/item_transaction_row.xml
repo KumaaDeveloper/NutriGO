@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/boxTransactionRow"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:background="@drawable/bg_card"
     android:layout_marginBottom="10dp"
-    android:padding="12dp"
-    android:gravity="center_vertical">
+    android:background="@drawable/bg_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="12dp">
 
     <ImageView
         android:id="@+id/imgTransResto"
         android:layout_width="60dp"
         android:layout_height="60dp"
+        android:contentDescription="resto"
         android:scaleType="centerCrop"
-        android:src="@drawable/img_placeholder_food"
-        android:contentDescription="resto"/>
+        android:src="@drawable/img_placeholder_food" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -28,32 +29,38 @@
             android:id="@+id/tvTransTanggal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:textColor="#888888"/>
+            android:textColor="#888888"
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/tvTransNamaResto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="8"
+            android:singleLine="false"
+            android:textColor="#000000"
             android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#000000"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvTransTotal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
+            android:textColor="#000000"
             android:textSize="13sp"
-            android:textColor="#000000"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvTransStatus"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="3dp"
+            android:textColor="#4CAF50"
             android:textSize="11sp"
-            android:textColor="#4CAF50"/>
+            android:textStyle="bold" />
+
     </LinearLayout>
 
     <Button
@@ -61,9 +68,12 @@
         android:layout_width="wrap_content"
         android:layout_height="34dp"
         android:background="@drawable/bg_button"
+        android:minWidth="64dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:text="Detail"
         android:textAllCaps="false"
-        android:textSize="12sp"
-        android:textColor="#000000"/>
+        android:textColor="#000000"
+        android:textSize="12sp" />
 
 </LinearLayout>

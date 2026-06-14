@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient">
 
-    <!-- TOOLBAR -->
     <LinearLayout
         android:id="@+id/llToolbarCart"
         android:layout_width="match_parent"
@@ -41,8 +40,6 @@
 
     </LinearLayout>
 
-
-    <!-- BOTTOM NAVIGATION, DIBUAT NAIK -->
     <LinearLayout
         android:id="@+id/bottomNavigationContainer"
         android:layout_width="match_parent"
@@ -162,8 +159,6 @@
 
     </LinearLayout>
 
-
-    <!-- CHECKOUT, DIBUAT NAIK DI ATAS NAVBAR -->
     <LinearLayout
         android:id="@+id/llBottomCheckoutContainer"
         android:layout_width="match_parent"
@@ -177,6 +172,105 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <Button
+            android:id="@+id/btnPromoCart"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="#9E9E9E"
+            android:enabled="false"
+            android:text="Pilih Promo"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Subtotal Makanan:"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvCartSubtotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rp 0"
+                android:textColor="#333333"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Promo:"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvCartPromoText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:maxLines="10"
+                android:singleLine="false"
+                android:text="-"
+                android:textColor="#246E9B"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Potongan Promo:"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvCartPromoDiscount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="- Rp 0"
+                android:textColor="#4CAF50"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="10dp"
+            android:background="#E0E0E0" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -188,8 +282,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Total Pembayaran:"
-                android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textColor="#000000"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvCartTotal"
@@ -197,7 +292,7 @@
                 android:layout_height="wrap_content"
                 android:text="Rp 0"
                 android:textColor="#FF4A4A"
-                android:textSize="16sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
         </LinearLayout>
@@ -237,8 +332,6 @@
 
     </LinearLayout>
 
-
-    <!-- LIST KERANJANG -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

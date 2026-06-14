@@ -30,7 +30,7 @@ import java.util.List;
 
 public class HomeActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://139.162.46.52/pedulimakanan/connector.php";
     private static final String PREF_NAME = "login_session";
 
     private int userId;
@@ -52,6 +52,7 @@ public class HomeActivity extends Activity {
     private TextView tvSheetSaldo;
     private EditText etCustomAmount;
     private TextView tvSaldo;
+    private TextView tvGreeting;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,11 +69,8 @@ public class HomeActivity extends Activity {
             return;
         }
 
-        TextView tvGreeting = findViewById(R.id.tvGreeting);
-
-        if (!namaUser.isEmpty()) {
-            tvGreeting.setText("Halo, " + namaUser + "!\nMau Makan Apa Hari Ini?");
-        }
+        tvGreeting = findViewById(R.id.tvGreeting);
+        updateGreetingFromSession();
 
         tvSaldo = findViewById(R.id.tvSaldo);
 
@@ -131,10 +129,28 @@ public class HomeActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
+        updateGreetingFromSession();
         new LoadHomeDataTask().execute();
 
         if (storeAdapter != null) {
             storeAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void updateGreetingFromSession() {
+        SharedPreferences prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+
+        String displayName = prefs.getString("profile_name", "");
+        String username = prefs.getString("nama", "");
+
+        if (displayName == null || displayName.trim().isEmpty() || displayName.equals("null")) {
+            displayName = username;
+        }
+
+        if (displayName != null && !displayName.trim().isEmpty() && !displayName.equals("null")) {
+            tvGreeting.setText("Halo, " + displayName + "!\nMau Makan Apa Hari Ini?");
+        } else {
+            tvGreeting.setText("Mau Makan Apa\nKamu Hari Ini?");
         }
     }
 

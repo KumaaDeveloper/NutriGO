@@ -238,7 +238,7 @@
 
                 <Space
                     android:layout_width="match_parent"
-                    android:layout_height="18dp" />
+                    android:layout_height="14dp" />
 
             </LinearLayout>
 

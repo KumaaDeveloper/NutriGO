@@ -24,7 +24,7 @@ import java.net.URLEncoder;
 
 public class ValidateProfilePhoneActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://139.162.46.52/pedulimakanan/connector.php";
 
     private int userId = -1;
     private String oldPhone = "";
