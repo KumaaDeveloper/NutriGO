@@ -390,6 +390,20 @@ public class HomeActivity extends Activity {
                 if (jsonObject.optBoolean("success", false)) {
                     int saldo = jsonObject.optInt("saldo", 0);
 
+                    String username = jsonObject.optString("nama", "");
+                    String profileName = jsonObject.optString("profile_name", "");
+
+                    if (profileName == null || profileName.trim().isEmpty() || profileName.equals("null")) {
+                        profileName = username;
+                    }
+
+                    SharedPreferences.Editor editor = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit();
+                    editor.putString("nama", username);
+                    editor.putString("profile_name", profileName);
+                    editor.apply();
+
+                    updateGreetingFromSession();
+
                     tvSaldo.setText("Rp " + fmt(saldo));
                     tvSheetSaldo.setText("Saldo saat ini: Rp " + fmt(saldo));
 

@@ -42,7 +42,7 @@ import java.util.ArrayList;
 
 public class RegisterActivity extends Activity {
 
-    private static final String CONNECTOR_URL = "http://172.104.183.200/pedulimakanan/connector.php";
+    private static final String CONNECTOR_URL = "http://139.162.46.52/pedulimakanan/connector.php";
 
     private static final String LAST_REGISTER_PREF = "last_register_data";
     private static final String KEY_LAST_NAMA = "last_nama";
